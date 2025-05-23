@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: r2p
+r2p:
+  visa:
+    base-url: https://sandbox.api.visa.com
+  webclient:
+    timeout:
+      connection: 5000
+      read: 30000
+      write: 30000
