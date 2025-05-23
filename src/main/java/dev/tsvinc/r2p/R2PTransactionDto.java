@@ -19,6 +19,4 @@ public record R2PTransactionDto(
         String debtorAgentId,
         LocalDateTime dueDate,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
-}
+        LocalDateTime updatedAt) {}

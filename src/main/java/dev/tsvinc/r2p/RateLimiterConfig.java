@@ -18,9 +18,8 @@ public class RateLimiterConfig {
         RedisSerializationContext.RedisSerializationContextBuilder<String, Long> builder =
                 RedisSerializationContext.newSerializationContext(new StringRedisSerializer());
 
-        RedisSerializationContext<String, Long> context = builder
-                .value(valueSerializer)
-                .build();
+        RedisSerializationContext<String, Long> context =
+                builder.value(valueSerializer).build();
 
         return new ReactiveRedisTemplate<>(factory, context);
     }

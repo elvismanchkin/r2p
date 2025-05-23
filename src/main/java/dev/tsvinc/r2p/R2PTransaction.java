@@ -10,6 +10,7 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -35,7 +36,10 @@ public class R2PTransaction {
     private String responseMessageId;
 
     @Column("transaction_status")
-    private String transactionStatus;
+    private TransactionStatus transactionStatus;
+
+    @Column("cancellation_reason")
+    private String cancellationReason;
 
     @Column("use_case")
     private String useCase;
@@ -74,7 +78,7 @@ public class R2PTransaction {
     private String debtorAliasType;
 
     @Column("due_date")
-    private LocalDateTime dueDate;
+    private LocalDate dueDate;
 
     @Column("request_reason")
     private String requestReason;
@@ -96,6 +100,15 @@ public class R2PTransaction {
 
     @Column("updated_at")
     private LocalDateTime updatedAt;
+
+    @Column("creditor_ack_message")
+    private String creditorAckMessage;
+
+    @Column("creditor_ack_emoji")
+    private String creditorAckEmoji;
+
+    @Column("payment_request_type")
+    private String paymentRequestType;
 
     @Version
     private Long version;

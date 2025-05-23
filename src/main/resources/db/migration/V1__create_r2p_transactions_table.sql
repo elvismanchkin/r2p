@@ -35,11 +35,11 @@ CREATE TABLE IF NOT EXISTS r2p_transactions
 );
 
 -- Create indexes
-CREATE INDEX idx_payment_request_id ON r2p_transactions(payment_request_id);
-CREATE INDEX idx_end_to_end_id ON r2p_transactions(end_to_end_id);
-CREATE INDEX idx_transaction_status ON r2p_transactions(transaction_status);
-CREATE INDEX idx_creditor_agent_id ON r2p_transactions(creditor_agent_id);
-CREATE INDEX idx_debtor_agent_id ON r2p_transactions(debtor_agent_id);
-CREATE INDEX idx_created_at ON r2p_transactions(created_at);
-CREATE INDEX idx_due_date ON r2p_transactions(due_date);
-CREATE INDEX idx_original_payment_request_id ON r2p_transactions(original_payment_request_id);
+CREATE INDEX idx_payment_request_id ON r2p_transactions (payment_request_id);
+CREATE INDEX idx_end_to_end_id ON r2p_transactions (end_to_end_id);
+CREATE INDEX idx_transaction_status ON r2p_transactions (transaction_status);
+CREATE INDEX idx_creditor_agent_id ON r2p_transactions (creditor_agent_id);
+CREATE INDEX idx_debtor_agent_id ON r2p_transactions (debtor_agent_id);
+CREATE INDEX idx_created_at ON r2p_transactions (created_at);
+CREATE INDEX idx_due_date ON r2p_transactions (due_date);
+CREATE INDEX idx_original_payment_request_id ON r2p_transactions (original_payment_request_id);
