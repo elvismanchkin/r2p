@@ -1,4 +1,4 @@
--- db/migration/V1__create_r2p_transactions_table.sql
+-- V1__create_r2p_transactions_table.sql
 CREATE TABLE IF NOT EXISTS r2p_transactions
 (
     id                          BIGSERIAL PRIMARY KEY,
@@ -20,21 +20,26 @@ CREATE TABLE IF NOT EXISTS r2p_transactions
     creditor_alias_type         VARCHAR(10),
     debtor_alias_type           VARCHAR(10),
     due_date                    TIMESTAMP,
-    request_reason              TEXT,
+    request_reason_json         TEXT,
     message                     TEXT,
     settlement_details_json     TEXT,
     original_payment_request_id VARCHAR(35),
+    payment_request_type        VARCHAR(10),
     is_refund                   BOOLEAN              DEFAULT FALSE,
+    cancellation_reason         VARCHAR(10),
+    creditor_ack_message        VARCHAR(250),
+    creditor_ack_emoji          VARCHAR(250),
     created_at                  TIMESTAMP   NOT NULL DEFAULT NOW(),
     updated_at                  TIMESTAMP   NOT NULL DEFAULT NOW(),
-    version                     BIGINT               DEFAULT 0,
-
-    INDEX                       idx_payment_request_id(payment_request_id),
-    INDEX                       idx_end_to_end_id(end_to_end_id),
-    INDEX                       idx_transaction_status(transaction_status),
-    INDEX                       idx_creditor_agent_id(creditor_agent_id),
-    INDEX                       idx_debtor_agent_id(debtor_agent_id),
-    INDEX                       idx_created_at(created_at),
-    INDEX                       idx_due_date(due_date),
-    INDEX                       idx_original_payment_request_id(original_payment_request_id)
+    version                     BIGINT               DEFAULT 0
 );
+
+-- Create indexes
+CREATE INDEX idx_payment_request_id ON r2p_transactions(payment_request_id);
+CREATE INDEX idx_end_to_end_id ON r2p_transactions(end_to_end_id);
+CREATE INDEX idx_transaction_status ON r2p_transactions(transaction_status);
+CREATE INDEX idx_creditor_agent_id ON r2p_transactions(creditor_agent_id);
+CREATE INDEX idx_debtor_agent_id ON r2p_transactions(debtor_agent_id);
+CREATE INDEX idx_created_at ON r2p_transactions(created_at);
+CREATE INDEX idx_due_date ON r2p_transactions(due_date);
+CREATE INDEX idx_original_payment_request_id ON r2p_transactions(original_payment_request_id);

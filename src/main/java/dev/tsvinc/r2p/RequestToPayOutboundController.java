@@ -1,7 +1,5 @@
 package dev.tsvinc.r2p;
 
-import com.company.visa.dto.outbound.*;
-import com.company.visa.service.outbound.RequestToPayOutboundService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,10 +11,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -207,8 +210,11 @@ public class RequestToPayOutboundController {
     private <T> Mono<ResponseEntity<T>> handleError(String operation, String identifier, Throwable error) {
         log.error("Error processing {} for {}: {}", operation, identifier, error.getMessage(), error);
 
-        if (error instanceof IllegalArgumentException || error instanceof ValidationException) {
+        if (error instanceof R2PValidationException || error instanceof R2PBusinessException) {
             return Mono.just(ResponseEntity.badRequest().build());
+        }
+        if (error instanceof R2PNotFoundException) {
+            return Mono.just(ResponseEntity.notFound().build());
         }
 
         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
