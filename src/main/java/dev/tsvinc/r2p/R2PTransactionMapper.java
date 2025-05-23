@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -17,50 +16,27 @@ import java.util.UUID;
 public class R2PTransactionMapper {
     private final ObjectMapper objectMapper;
 
-    public R2PTransaction createTransactionFromInitiate(InitiateR2pRequest request, InitiateR2pResponse response) {
-        PaymentRequestDetail requestDetail = request.paymentRequests().get(0);
-        PaymentRequestMinResponse responseDetail = response.paymentRequests().get(0);
-
+    public R2PTransaction createTransactionFromInitiate(InitiateR2pRequest request, PaymentRequestDetail paymentRequest) {
         return R2PTransaction.builder()
-                .paymentRequestId(responseDetail.paymentRequestId())
-                .endToEndId(requestDetail.endToEndId())
+                .paymentRequestId(UUID.randomUUID().toString().substring(0, 21)) // Generate Visa-style ID
+                .endToEndId(paymentRequest.endToEndId())
                 .requestMessageId(request.requestMessageId())
-                .responseMessageId(response.responseMessageId())
-                .transactionStatus(responseDetail.transactionStatus().name())
+                .transactionStatus(TransactionStatus.PDNG.name())
                 .useCase(request.useCase().name())
                 .product(request.product().name())
-                .requestedAmount(BigDecimal.valueOf(requestDetail.requestedAmount()))
-                .requestedAmountCurrency(requestDetail.requestedAmountCurrency())
+                .requestedAmount(BigDecimal.valueOf(paymentRequest.requestedAmount()))
+                .requestedAmountCurrency(paymentRequest.requestedAmountCurrency())
                 .creditorAgentId(request.creditor().creditorAgentId())
-                .debtorAgentId(requestDetail.debtorAgentId())
+                .debtorAgentId(paymentRequest.debtorAgentId())
                 .creditorAlias(request.creditor().creditorAlias())
-                .creditorAliasType(request.creditor().creditorAliasType().name())
-                .debtorAlias(requestDetail.debtorAlias())
-                .debtorAliasType(requestDetail.debtorAliasType().name())
-                .dueDate(request.dueDate() != null ? LocalDateTime.parse(request.dueDate() + "T00:00:00") : null)
+                .creditorAliasType(request.creditor().creditorAliasType() != null ?
+                        request.creditor().creditorAliasType().name() : null)
+                .debtorAlias(paymentRequest.debtorAlias())
+                .debtorAliasType(paymentRequest.debtorAliasType() != null ?
+                        paymentRequest.debtorAliasType().name() : null)
+                .dueDate(request.dueDate() != null ? LocalDateTime.parse(request.dueDate() + "T23:59:59") : null)
                 .requestReason(serializeToJson(request.requestReason()))
                 .isRefund(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
-
-    public R2PTransaction createRefundTransaction(String originalPaymentRequestId, RefundR2pRequest request, RefundR2pResponse response) {
-        RefundPaymentRequest refundRequest = request.paymentRequests().get(0);
-        PaymentRequestMinResponse responseDetail = response.paymentRequests().get(0);
-
-        return R2PTransaction.builder()
-                .paymentRequestId(responseDetail.paymentRequestId())
-                .endToEndId(refundRequest.endToEndId())
-                .requestMessageId(request.requestMessageId())
-                .responseMessageId(response.responseMessageId())
-                .transactionStatus(responseDetail.transactionStatus().name())
-                .useCase("B2C") // Refunds are typically B2C
-                .product("VD")  // Using VD as default product
-                .requestedAmount(BigDecimal.valueOf(refundRequest.requestedAmount()))
-                .creditorAgentId(request.creditor().creditorAgentId())
-                .originalPaymentRequestId(originalPaymentRequestId)
-                .isRefund(true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -84,22 +60,22 @@ public class R2PTransactionMapper {
         );
     }
 
-    public ConfirmR2pResponse createConfirmResponse(String paymentRequestId, ConfirmR2pRequest request) {
-        return new ConfirmR2pResponse(
-                UUID.randomUUID().toString(),
-                paymentRequestId,
-                request.endToEndId(),
-                request.requestMessageId(),
-                request.transactionStatus(),
-                Instant.now().toString()
-        );
+    public String settlementDetailsToJson(SettlementDetails settlementDetails) {
+        return serializeToJson(settlementDetails);
+    }
+
+    public String requestReasonToJson(RequestReason requestReason) {
+        return serializeToJson(requestReason);
     }
 
     private String serializeToJson(Object object) {
+        if (object == null) {
+            return null;
+        }
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize to JSON", e);
+            log.error("Failed to serialize object to JSON: {}", object, e);
             return "{}";
         }
     }

@@ -6,11 +6,6 @@ import org.zalando.problem.Status;
 public class R2PBusinessException extends AbstractThrowableProblem {
 
     public R2PBusinessException(String message) {
-        super(
-                null,
-                "Business Rule Violation",
-                Status.BAD_REQUEST,
-                message
-        );
+        super(null, "Business Rule Violation", Status.BAD_REQUEST, message);
     }
 }

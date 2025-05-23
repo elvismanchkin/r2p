@@ -11,7 +11,6 @@ import dev.tsvinc.r2p.InitiateR2pResponse;
 import dev.tsvinc.r2p.RefundR2pRequest;
 import dev.tsvinc.r2p.RefundR2pResponse;
 import dev.tsvinc.r2p.TransactionTaggingRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;

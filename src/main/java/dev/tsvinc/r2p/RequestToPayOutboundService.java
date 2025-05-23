@@ -171,13 +171,18 @@ public class RequestToPayOutboundService {
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
-    // Private helper methods
     private Mono<R2PTransaction> updateTransactionForConfirmation(R2PTransaction transaction,
                                                                   ConfirmR2pRequest request) {
         return Mono.fromCallable(() -> {
             transaction.setTransactionStatus(request.transactionStatus().name());
-            transaction.setTransactionStatus(request.statusReason());
-            transaction.setMessage(request.message());
+            // Fix: Set status reason in correct field, not transaction status
+            if (request.statusReason() != null) {
+                // Store status reason in message field or create a separate field
+                transaction.setMessage(request.statusReason() +
+                        (request.message() != null ? " - " + request.message() : ""));
+            } else if (request.message() != null) {
+                transaction.setMessage(request.message());
+            }
 
             if (request.acceptedAmount() != null) {
                 transaction.setAcceptedAmount(BigDecimal.valueOf(request.acceptedAmount()));
@@ -209,13 +214,20 @@ public class RequestToPayOutboundService {
         return Mono.fromCallable(() -> {
             RefundPaymentRequest refundRequest = request.paymentRequests().get(0);
 
+            // Validate the refund amount doesn't exceed original transaction amount
+            if (originalTransaction.getAcceptedAmount() != null &&
+                    BigDecimal.valueOf(refundRequest.requestedAmount())
+                            .compareTo(originalTransaction.getAcceptedAmount()) > 0) {
+                throw new R2PBusinessException("Refund amount cannot exceed the original transaction amount");
+            }
+
             R2PTransaction refundTransaction = new R2PTransaction();
             refundTransaction.setPaymentRequestId("RFD" + UUID.randomUUID().toString().substring(0, 18));
             refundTransaction.setEndToEndId(refundRequest.endToEndId());
             refundTransaction.setRequestMessageId(request.requestMessageId());
-            refundTransaction.setTransactionStatus(TransactionStatus.PDNG);
-            refundTransaction.setUseCase(UseCase.B2C);
-            refundTransaction.setRequestedAmount(refundRequest.requestedAmount());
+            refundTransaction.setTransactionStatus(TransactionStatus.PDNG.name());
+            refundTransaction.setUseCase(UseCase.B2C.name());
+            refundTransaction.setRequestedAmount(BigDecimal.valueOf(refundRequest.requestedAmount()));
             refundTransaction.setRequestedAmountCurrency(originalTransaction.getRequestedAmountCurrency());
             refundTransaction.setOriginalPaymentRequestId(originalTransaction.getPaymentRequestId());
             refundTransaction.setPaymentRequestType("REFUND");

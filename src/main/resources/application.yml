@@ -1,9 +1,43 @@
 spring:
   application:
     name: r2p
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/r2p_db
+    username: ${DB_USERNAME:r2p_user}
+    password: ${DB_PASSWORD:r2p_password}
+    pool:
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+  flyway:
+    url: jdbc:postgresql://localhost:5432/r2p_db
+    user: ${DB_USERNAME:r2p_user}
+    password: ${DB_PASSWORD:r2p_password}
+    baseline-on-migrate: true
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    dev.tsvinc.r2p: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
 r2p:
   visa:
-    base-url: https://sandbox.api.visa.com
+    base-url: ${VISA_BASE_URL:https://sandbox.api.visa.com}
   webclient:
     timeout:
       connection: 5000

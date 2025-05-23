@@ -6,7 +6,4 @@ import jakarta.validation.constraints.NotNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record TransactionTaggingRequest(
-        @NotNull @Valid MessageEvent messageEvent,
-        @NotNull @Valid TaggedTransaction taggedTransaction
-) {}
-
+        @NotNull @Valid MessageEvent messageEvent, @NotNull @Valid TaggedTransaction taggedTransaction) {}

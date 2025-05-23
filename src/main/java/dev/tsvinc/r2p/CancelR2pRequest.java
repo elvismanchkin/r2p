@@ -9,6 +9,4 @@ import jakarta.validation.constraints.Size;
 public record CancelR2pRequest(
         @NotBlank @Size(max = 35) String requestMessageId,
         @NotBlank @Pattern(regexp = "ERRAMT|ERRDRINFO|PAID|DRTP|ERR|SVNR|FRAUD|OTHR") String cancellationReason,
-        @NotBlank String creationDateTime
-) {
-}
+        @NotBlank String creationDateTime) {}

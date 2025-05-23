@@ -17,6 +17,4 @@ public record PaymentRequestDetail(
         @NotBlank @Size(max = 140) @Pattern(regexp = "^[A-Z]\\.?$") String debtorLastName,
         @NotNull @DecimalMin(value = "0.01") Double requestedAmount,
         @NotBlank @Size(min = 3, max = 3) String requestedAmountCurrency,
-        @NotBlank @Size(max = 35) String paymentRequestId
-) {
-}
+        @NotBlank @Size(max = 35) String paymentRequestId) {}

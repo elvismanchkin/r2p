@@ -56,16 +56,28 @@ public class R2PWebClientConfig {
 
     private ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
-            log.debug("R2P Request: {} {}", clientRequest.method(), clientRequest.url());
-            log.trace("R2P Request Headers: {}", clientRequest.headers());
+            if (log.isDebugEnabled()) {
+                StringBuilder headerBuilder = new StringBuilder();
+                clientRequest.headers().forEach((name, values) -> headerBuilder.append(name).append(": ").append(String.join(",", values)).append("\n"));
+
+                log.debug("R2P Request: {} {}\nHeaders: {}",
+                        clientRequest.method(),
+                        clientRequest.url(),
+                        headerBuilder);
+            }
             return Mono.just(clientRequest);
         });
     }
 
     private ExchangeFilterFunction logResponse() {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
-            log.debug("R2P Response Status: {}", clientResponse.statusCode());
-            log.trace("R2P Response Headers: {}", clientResponse.headers().asHttpHeaders());
+            if (log.isDebugEnabled()) {
+                log.debug("R2P Response Status: {}", clientResponse.statusCode());
+
+                if (log.isTraceEnabled()) {
+                    clientResponse.headers().asHttpHeaders().forEach((name, values) -> log.trace("Header {}: {}", name, String.join(",", values)));
+                }
+            }
             return Mono.just(clientResponse);
         });
     }
@@ -88,4 +100,6 @@ public class R2PWebClientConfig {
             return Mono.just(clientResponse);
         });
     }
+
+
 }

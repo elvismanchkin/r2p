@@ -8,6 +8,4 @@ public record PaymentRequestMinResponse(
         @NotBlank String endToEndId,
         @NotNull TransactionStatus transactionStatus,
         String debtorId,
-        String debtorIdType
-) {
-}
+        String debtorIdType) {}

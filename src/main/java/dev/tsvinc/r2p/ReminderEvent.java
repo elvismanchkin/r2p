@@ -6,6 +6,4 @@ import jakarta.validation.constraints.Size;
 
 public record ReminderEvent(
         @NotBlank @Size(max = 35) String paymentRequestId,
-        @NotBlank @Pattern(regexp = "REMINDER|EXPIRED|REJECTED|SETTLED") String eventType
-) {
-}
+        @NotBlank @Pattern(regexp = "REMINDER|EXPIRED|REJECTED|SETTLED") String eventType) {}

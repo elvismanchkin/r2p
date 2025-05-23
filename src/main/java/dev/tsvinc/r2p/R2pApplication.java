@@ -9,5 +9,4 @@ public class R2pApplication {
     public static void main(String[] args) {
         SpringApplication.run(R2pApplication.class, args);
     }
-
 }

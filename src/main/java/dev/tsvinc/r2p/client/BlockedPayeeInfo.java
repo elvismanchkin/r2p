@@ -12,6 +12,4 @@ public record BlockedPayeeInfo(
         String creditorAliasType,
         String creditorFirstName,
         String creditorLastName,
-        String creditorBusinessName
-) {
-}
+        String creditorBusinessName) {}

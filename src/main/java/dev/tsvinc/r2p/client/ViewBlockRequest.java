@@ -9,6 +9,4 @@ public record ViewBlockRequest(
         @NotBlank String debtorIdType,
         @Size(max = 35) String debtorAgentId,
         @NotBlank @Size(max = 35) String requestMessageId,
-        @NotBlank String creationDateTime
-) {
-}
+        @NotBlank String creationDateTime) {}

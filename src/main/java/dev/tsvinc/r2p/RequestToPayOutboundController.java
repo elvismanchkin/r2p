@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -207,7 +209,7 @@ public class RequestToPayOutboundController {
         });
     }
 
-    private <T> Mono<ResponseEntity<T>> handleError(String operation, String identifier, Throwable error) {
+    /*private <T> Mono<ResponseEntity<T>> handleError(String operation, String identifier, Throwable error) {
         log.error("Error processing {} for {}: {}", operation, identifier, error.getMessage(), error);
 
         if (error instanceof R2PValidationException || error instanceof R2PBusinessException) {
@@ -218,5 +220,49 @@ public class RequestToPayOutboundController {
         }
 
         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+    }*/
+
+    private <T> Mono<ResponseEntity<T>> handleError(String operation, String identifier, Throwable error) {
+        log.error("Error processing {} for {}: {}", operation, identifier, error.getMessage(), error);
+
+        if (error instanceof R2PValidationException || error instanceof R2PBusinessException) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    "RC2000",
+                    error.getMessage(),
+                    LocalDateTime.now().toString(),
+                    identifier,
+                    UUID.randomUUID().toString(),
+                    List.of()
+            );
+            return Mono.just(ResponseEntity.badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body((T) errorResponse));
+        }
+
+        if (error instanceof R2PNotFoundException) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    "RC4000",
+                    error.getMessage(),
+                    LocalDateTime.now().toString(),
+                    identifier,
+                    UUID.randomUUID().toString(),
+                    List.of()
+            );
+            return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body((T) errorResponse));
+        }
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                "RC5000",
+                "An unexpected error occurred",
+                LocalDateTime.now().toString(),
+                identifier,
+                UUID.randomUUID().toString(),
+                List.of()
+        );
+        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body((T) errorResponse));
     }
 }

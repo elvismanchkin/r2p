@@ -17,7 +17,6 @@ public record ConfirmR2pRequest(
         @Size(max = 4) String statusReason,
         @Size(max = 500) String message,
         @DecimalMin(value = "0.01") Double acceptedAmount,
-        @Size(min = 3,max = 3/*, exactly = 3*/) String acceptedAmountCurrency,
+        @Size(min = 3, max = 3 /*, exactly = 3*/) String acceptedAmountCurrency,
         @Valid SettlementDetails settlementDetails,
-        @NotBlank @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z") String creationDateTime
-) {}
+        @NotBlank @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z") String creationDateTime) {}

@@ -17,3 +17,8 @@ public record R2PTransactionDto(
         String acceptedAmountCurrency,
         String creditorAgentId,
         String debtorAgentId,
+        LocalDateTime dueDate,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
+) {
+}

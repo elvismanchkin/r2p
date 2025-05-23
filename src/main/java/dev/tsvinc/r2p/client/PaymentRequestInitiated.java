@@ -21,6 +21,4 @@ public record PaymentRequestInitiated(
         String debtorIdType,
         String debtorBusinessName,
         String paymentRequestType,
-        String originalPaymentRequestId
-) {
-}
+        String originalPaymentRequestId) {}
