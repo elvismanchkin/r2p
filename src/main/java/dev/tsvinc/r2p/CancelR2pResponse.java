@@ -1,0 +1,23 @@
+package dev.tsvinc.r2p;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+import java.time.Instant;
+import java.util.UUID;
+
+public record CancelR2pResponse(
+        @NotBlank String responseMessageId,
+        @NotBlank String requestMessageId,
+        @NotNull TransactionStatus transactionStatus,
+        @NotBlank String creationDateTime
+) {
+    public static CancelR2pResponse create(CancelR2pRequest request) {
+        return new CancelR2pResponse(
+                UUID.randomUUID().toString(),
+                request.requestMessageId(),
+                TransactionStatus.CNCL,
+                Instant.now().toString()
+        );
+    }
+}
