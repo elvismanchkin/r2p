@@ -143,6 +143,11 @@
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>1.9.22.1</version>
+        </dependency>
     </dependencies>
 
     <build>

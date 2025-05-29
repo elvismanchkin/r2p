@@ -36,10 +36,22 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 r2p:
-  visa:
-    base-url: ${VISA_BASE_URL:https://sandbox.api.visa.com}
-  webclient:
-    timeout:
-      connection: 5000
-      read: 30000
-      write: 30000
+  api:
+    cors:
+      allowed-origins: [ "https://api.visa.com", "https://sandbox.api.visa.com" ]
+      allowed-methods: [ "GET", "POST", "PATCH", "DELETE" ]
+      allowed-headers: [ "*" ]
+      headers:
+        include-correlation-id: true
+        include-processing-time: true
+        include-pagination: true
+      pagination:
+        default-size: 10
+        max-size: 100
+    visa:
+      base-url: ${VISA_BASE_URL:https://sandbox.api.visa.com}
+    webclient:
+      timeout:
+        connection: 5000
+        read: 30000
+        write: 30000

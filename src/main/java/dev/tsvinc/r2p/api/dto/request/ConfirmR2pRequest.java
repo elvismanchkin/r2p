@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ConfirmR2pRequest(
         @NotBlank @Size(max = 35) String paymentRequestId,
@@ -17,7 +19,8 @@ public record ConfirmR2pRequest(
         @NotNull TransactionStatus transactionStatus,
         @Size(max = 4) String statusReason,
         @Size(max = 500) String message,
-        @DecimalMin(value = "0.01") Double acceptedAmount,
-        @Size(min = 3, max = 3 /*, exactly = 3*/) String acceptedAmountCurrency,
+        @DecimalMin(value = "0.01") BigDecimal acceptedAmount, // Changed from Double
+        @Size(min = 3, max = 3) String acceptedAmountCurrency,
         @Valid SettlementDetails settlementDetails,
-        @NotBlank @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z") String creationDateTime) {}
+        @NotBlank @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z") String creationDateTime
+) {}

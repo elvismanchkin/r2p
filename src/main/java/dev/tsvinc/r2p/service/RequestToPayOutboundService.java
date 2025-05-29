@@ -35,7 +35,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -202,17 +201,17 @@ public class RequestToPayOutboundService {
             R2PTransaction transaction, ConfirmR2pRequest request) {
         return Mono.fromCallable(() -> {
             transaction.setTransactionStatus(request.transactionStatus());
-            // Fix: Set status reason in correct field, not transaction status
+
             if (request.statusReason() != null) {
-                // Store status reason in message field or create a separate field
                 transaction.setMessage(
                         request.statusReason() + (request.message() != null ? " - " + request.message() : ""));
             } else if (request.message() != null) {
                 transaction.setMessage(request.message());
             }
 
+            // Updated to handle BigDecimal
             if (request.acceptedAmount() != null) {
-                transaction.setAcceptedAmount(BigDecimal.valueOf(request.acceptedAmount()));
+                transaction.setAcceptedAmount(request.acceptedAmount()); // Now BigDecimal
                 transaction.setAcceptedAmountCurrency(request.acceptedAmountCurrency());
             }
 
@@ -228,7 +227,6 @@ public class RequestToPayOutboundService {
     private Mono<R2PTransaction> updateTransactionWithTagging(
             R2PTransaction transaction, TransactionTaggingRequest request) {
         return Mono.fromCallable(() -> {
-            // Store tagging information
             transaction.setCreditorAckMessage(request.messageEvent().creditorAckMessage());
             transaction.setCreditorAckEmoji(request.messageEvent().creditorAckEmoji());
             return transaction;
@@ -239,7 +237,7 @@ public class RequestToPayOutboundService {
         return Mono.fromCallable(() -> {
             RefundPaymentRequest refundRequest = request.paymentRequests().get(0);
 
-            // Validate the refund amount doesn't exceed original transaction amount
+            // Validate the refund amount doesn't exceed original transaction amount (BigDecimal comparison)
             if (originalTransaction.getAcceptedAmount() != null
                     && refundRequest.requestedAmount().compareTo(originalTransaction.getAcceptedAmount()) > 0) {
                 throw new R2PBusinessException("Refund amount cannot exceed the original transaction amount");
@@ -252,7 +250,7 @@ public class RequestToPayOutboundService {
             refundTransaction.setRequestMessageId(request.requestMessageId());
             refundTransaction.setTransactionStatus(TransactionStatus.PDNG);
             refundTransaction.setUseCase(UseCase.B2C.name());
-            refundTransaction.setRequestedAmount(refundRequest.requestedAmount());
+            refundTransaction.setRequestedAmount(refundRequest.requestedAmount()); // BigDecimal
             refundTransaction.setRequestedAmountCurrency(originalTransaction.getRequestedAmountCurrency());
             refundTransaction.setOriginalPaymentRequestId(originalTransaction.getPaymentRequestId());
             refundTransaction.setPaymentRequestType("REFUND");
@@ -285,8 +283,9 @@ public class RequestToPayOutboundService {
                 transaction.setDueDate(LocalDate.parse(request.dueDate()));
             }
 
+            // Updated to handle BigDecimal
             if (request.paymentRequest() != null && request.paymentRequest().requestedAmount() != null) {
-                transaction.setRequestedAmount(request.paymentRequest().requestedAmount());
+                transaction.setRequestedAmount(request.paymentRequest().requestedAmount()); // BigDecimal
             }
 
             if (request.requestReason() != null) {
