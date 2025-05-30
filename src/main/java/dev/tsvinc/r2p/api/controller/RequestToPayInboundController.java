@@ -12,6 +12,8 @@ import dev.tsvinc.r2p.api.dto.response.ConfirmR2pResponse;
 import dev.tsvinc.r2p.api.dto.response.InitiateR2pResponse;
 import dev.tsvinc.r2p.api.dto.response.R2PApiResponse;
 import dev.tsvinc.r2p.api.dto.response.RefundR2pResponse;
+import dev.tsvinc.r2p.api.dto.response.Metadata;
+import dev.tsvinc.r2p.api.dto.response.Pagination;
 import dev.tsvinc.r2p.client.dto.request.RetrieveR2pByEndToEndIdsRequest;
 import dev.tsvinc.r2p.client.dto.request.RetrieveR2pByPaymentRequestIdsRequest;
 import dev.tsvinc.r2p.client.dto.response.MultipleRetrieveR2pResponse;
@@ -143,7 +145,6 @@ public class RequestToPayInboundController {
                 });
     }
 
-    /*TODO: implement enhanced headers for other methods*/
     @Operation(summary = "Retrieve Multiple R2P", description = "Retrieve multiple Request to Pay transactions with pagination")
     @PostMapping(value = "/retrieve",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -154,52 +155,30 @@ public class RequestToPayInboundController {
             @RequestHeader(value = "x-correlation-id", required = false) String correlationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @Valid @RequestBody Object request) {
+            @Valid @RequestBody RetrieveR2pByPaymentRequestIdsRequest request) {
 
         String corrId = correlationId != null ? correlationId : UUID.randomUUID().toString();
         String affinity = requestAffinity != null ? requestAffinity : UUID.randomUUID().toString();
         Instant startTime = Instant.now();
 
-        Mono<MultipleRetrieveR2pResponse> responseMono;
-        if (request instanceof RetrieveR2pByPaymentRequestIdsRequest paymentIdsRequest) {
-            responseMono = webClientService.retrieveMultipleR2PByPaymentRequestIds(keyId, requestAffinity, paymentIdsRequest);
-        } else if (request instanceof RetrieveR2pByEndToEndIdsRequest endToEndIdsRequest) {
-            responseMono = webClientService.retrieveMultipleR2PByEndToEndIds(keyId, requestAffinity, endToEndIdsRequest);
-        } else {
-            return Mono.just(ResponseEntity.badRequest().build());
-        }
-
-        return responseMono
+        return webClientService.retrieveMultipleR2PByPaymentRequestIds(keyId, requestAffinity, request)
                 .map(response -> {
-                    // Calculate pagination (simplified)
                     int totalElements = response.paymentRequestDetails().size();
                     int totalPages = (int) Math.ceil((double) totalElements / size);
 
-                    R2PApiResponse.PaginationInfo pagination = R2PApiResponse.PaginationInfo.builder()
-                            .page(page)
-                            .size(size)
-                            .totalElements(totalElements)
-                            .totalPages(totalPages)
-                            .hasNext(page < totalPages - 1)
-                            .hasPrevious(page > 0)
-                            .build();
-
-                    R2PApiResponse.ResponseMetadata metadata = R2PApiResponse.ResponseMetadata.builder()
-                            .requestId(UUID.randomUUID().toString())
-                            .correlationId(corrId)
-                            .timestamp(Instant.now().toString())
-                            .apiVersion("v1")
-                            .processingTime(System.currentTimeMillis() - startTime.toEpochMilli() + "ms")
-                            .headers(Map.of(
-                                    "X-Total-Count", String.valueOf(totalElements),
-                                    "X-Page-Count", String.valueOf(totalPages)
-                            ))
-                            .build();
-
                     R2PApiResponse<MultipleRetrieveR2pResponse> apiResponse = R2PApiResponse.<MultipleRetrieveR2pResponse>builder()
                             .data(response)
-                            .metadata(metadata)
-                            .pagination(pagination)
+                            .metadata(R2PApiResponse.ResponseMetadata.builder()
+                                    .timestamp(Instant.now().toString())
+                                    .build())
+                            .pagination(R2PApiResponse.PaginationInfo.builder()
+                                    .page(page)
+                                    .size(size)
+                                    .totalElements(totalElements)
+                                    .totalPages(totalPages)
+                                    .hasNext(page < totalPages - 1)
+                                    .hasPrevious(page > 0)
+                                    .build())
                             .build();
 
                     return ResponseEntity.ok()
