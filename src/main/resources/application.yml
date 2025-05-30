@@ -94,9 +94,9 @@ opentelemetry:
 # Rate limiting configuration (using Redis)
 spring:
   redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
+    cluster:
+      nodes: ${REDIS_CLUSTER_NODES:localhost:6379}
+      max-redirects: 3
     ssl: ${REDIS_SSL:false}
     timeout: 2000
     lettuce:
@@ -105,6 +105,27 @@ spring:
         max-idle: 8
         min-idle: 0
         max-wait: -1ms
+      cluster:
+        refresh:
+          adaptive: true
+          period: 15s
+
+# Redis configuration with password authentication
+spring:
+  config:
+    activate:
+      on-profile: redis-password
+  redis:
+    password: ${REDIS_PASSWORD}
+
+# Redis configuration with username and password authentication
+spring:
+  config:
+    activate:
+      on-profile: redis-username-password
+  redis:
+    username: ${REDIS_USERNAME}
+    password: ${REDIS_PASSWORD}
 
 # Circuit breaker configuration
 resilience4j:

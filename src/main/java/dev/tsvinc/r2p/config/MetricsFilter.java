@@ -10,9 +10,6 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.time.Instant;
-
 @Component
 @RequiredArgsConstructor
 public class MetricsFilter implements WebFilter {
@@ -21,13 +18,11 @@ public class MetricsFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        Instant start = Instant.now();
         String path = exchange.getRequest().getURI().getPath();
         String method = exchange.getRequest().getMethod().name();
 
         return chain.filter(exchange)
                 .doFinally(signalType -> {
-                    Duration duration = Duration.between(start, Instant.now());
                     int statusCode = exchange.getResponse().getStatusCode() != null ?
                             exchange.getResponse().getStatusCode().value() : 0;
 
