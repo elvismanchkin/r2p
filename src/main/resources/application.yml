@@ -1,6 +1,6 @@
 spring:
   application:
-    name: r2p
+    name: r2p-service
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/r2p_db
     username: ${DB_USERNAME:r2p_user}
@@ -18,22 +18,110 @@ spring:
     default-property-inclusion: non_null
     serialization:
       write-dates-as-timestamps: false
+  sleuth:
+    sampler:
+      probability: 1.0
+    propagation:
+      type: B3
+    baggage:
+      correlation:
+        enabled: true
+        remote-fields: x-correlation-id,x-request-id,x-instance-id
+  cloud:
+    loadbalancer:
+      retry:
+        enabled: true
+    circuitbreaker:
+      resilience4j:
+        enabled: true
+        instances:
+          default:
+            slidingWindowSize: 100
+            minimumNumberOfCalls: 10
+            permittedNumberOfCallsInHalfOpenState: 5
+            automaticTransitionFromOpenToHalfOpenEnabled: true
+            waitDurationInOpenState: 5s
+            failureRateThreshold: 50
+            eventConsumerBufferSize: 10
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,prometheus
+        include: health,info,prometheus,metrics
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      instance: ${random.uuid}
 
 logging:
-  level:
-    dev.tsvinc.r2p: DEBUG
-    org.springframework.data.r2dbc: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    dev.tsvinc.r2p: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    reactor.netty: INFO
+
+server:
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 20
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,text/css,application/javascript
+    min-response-size: 1024
+
+# Distributed tracing configuration
+opentelemetry:
+  service:
+    name: ${spring.application.name}
+  traces:
+    exporter: jaeger
+  metrics:
+    exporter: prometheus
+  logs:
+    exporter: logging
+
+# Rate limiting configuration (using Redis)
+spring:
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    ssl: ${REDIS_SSL:false}
+    timeout: 2000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+# Circuit breaker configuration
+resilience4j:
+  ratelimiter:
+    instances:
+      default:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0s
+        registerHealthIndicator: true
+  retry:
+    instances:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
 
 r2p:
   api:

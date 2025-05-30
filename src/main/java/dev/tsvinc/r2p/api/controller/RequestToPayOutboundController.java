@@ -226,60 +226,30 @@ public class RequestToPayOutboundController {
         });
     }
 
-    /*private <T> Mono<ResponseEntity<T>> handleError(String operation, String identifier, Throwable error) {
-        log.error("Error processing {} for {}: {}", operation, identifier, error.getMessage(), error);
-
-        if (error instanceof R2PValidationException || error instanceof R2PBusinessException) {
-            return Mono.just(ResponseEntity.badRequest().build());
-        }
-        if (error instanceof R2PNotFoundException) {
-            return Mono.just(ResponseEntity.notFound().build());
-        }
-
-        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
-    }*/
-
     private <T> Mono<ResponseEntity<T>> handleError(String operation, String identifier, Throwable error) {
         log.error("Error processing {} for {}: {}", operation, identifier, error.getMessage(), error);
 
-        if (error instanceof R2PValidationException || error instanceof R2PBusinessException) {
-            ErrorResponse errorResponse = new ErrorResponse(
-                    "RC2000",
-                    error.getMessage(),
-                    LocalDateTime.now().toString(),
-                    identifier,
-                    UUID.randomUUID().toString(),
-                    List.of()
-            );
-            return Mono.just(ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body((T) errorResponse));
-        }
-
-        if (error instanceof R2PNotFoundException) {
-            ErrorResponse errorResponse = new ErrorResponse(
-                    "RC4000",
-                    error.getMessage(),
-                    LocalDateTime.now().toString(),
-                    identifier,
-                    UUID.randomUUID().toString(),
-                    List.of()
-            );
-            return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body((T) errorResponse));
-        }
-
         ErrorResponse errorResponse = new ErrorResponse(
-                "RC5000",
+                error instanceof R2PValidationException || error instanceof R2PBusinessException ? "RC2000" :
+                error instanceof R2PNotFoundException ? "RC4000" : "RC5000",
+                error instanceof R2PNotFoundException ? error.getMessage() : 
+                error instanceof R2PValidationException || error instanceof R2PBusinessException ? error.getMessage() :
                 "An unexpected error occurred",
                 LocalDateTime.now().toString(),
                 identifier,
                 UUID.randomUUID().toString(),
                 List.of()
         );
-        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+
+        HttpStatus status = error instanceof R2PValidationException || error instanceof R2PBusinessException ? 
+                HttpStatus.BAD_REQUEST :
+                error instanceof R2PNotFoundException ? HttpStatus.NOT_FOUND :
+                HttpStatus.INTERNAL_SERVER_ERROR;
+
+        @SuppressWarnings("unchecked")
+        T response = (T) errorResponse;
+        return Mono.just(ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body((T) errorResponse));
+                .body(response));
     }
 }

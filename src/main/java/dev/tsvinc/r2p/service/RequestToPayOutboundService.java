@@ -235,7 +235,7 @@ public class RequestToPayOutboundService {
 
     private Mono<R2PTransaction> createRefundTransaction(R2PTransaction originalTransaction, RefundR2pRequest request) {
         return Mono.fromCallable(() -> {
-            RefundPaymentRequest refundRequest = request.paymentRequests().get(0);
+            RefundPaymentRequest refundRequest = request.paymentRequests().getFirst();
 
             // Validate the refund amount doesn't exceed original transaction amount (BigDecimal comparison)
             if (originalTransaction.getAcceptedAmount() != null

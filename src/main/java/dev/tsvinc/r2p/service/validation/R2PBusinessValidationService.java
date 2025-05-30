@@ -1,9 +1,12 @@
 package dev.tsvinc.r2p.service.validation;
 
-
+import dev.tsvinc.r2p.api.dto.request.AmendR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.CancelR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.ConfirmR2pRequest;
 import dev.tsvinc.r2p.api.dto.request.Creditor;
 import dev.tsvinc.r2p.api.dto.request.InitiateR2pRequest;
 import dev.tsvinc.r2p.api.dto.request.PaymentRequestDetail;
+import dev.tsvinc.r2p.api.dto.request.RefundR2pRequest;
 import dev.tsvinc.r2p.domain.enums.UseCase;
 import dev.tsvinc.r2p.exception.R2PBusinessException;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +46,42 @@ public class R2PBusinessValidationService {
 
         for (PaymentRequestDetail paymentRequest : request.paymentRequests()) {
             validatePaymentRequest(paymentRequest, request.useCase());
+        }
+    }
+
+    public void validateConfirmRequest(ConfirmR2pRequest request) {
+        if (request.requestMessageId() == null || request.requestMessageId().isBlank()) {
+            throw new R2PBusinessException("Request message ID is required");
+        }
+        if (request.transactionStatus() == null) {
+            throw new R2PBusinessException("Transaction status is required");
+        }
+    }
+
+    public void validateCancelRequest(CancelR2pRequest request) {
+        if (request.requestMessageId() == null || request.requestMessageId().isBlank()) {
+            throw new R2PBusinessException("Request message ID is required");
+        }
+        if (request.cancellationReason() == null || request.cancellationReason().isBlank()) {
+            throw new R2PBusinessException("Cancellation reason is required");
+        }
+    }
+
+    public void validateAmendRequest(AmendR2pRequest request) {
+        if (request.requestMessageId() == null || request.requestMessageId().isBlank()) {
+            throw new R2PBusinessException("Request message ID is required");
+        }
+        if (request.dueDate() != null) {
+            validateDueDate(request.dueDate());
+        }
+    }
+
+    public void validateRefundRequest(RefundR2pRequest request) {
+        if (request.requestMessageId() == null || request.requestMessageId().isBlank()) {
+            throw new R2PBusinessException("Request message ID is required");
+        }
+        if (request.paymentRequests() == null || request.paymentRequests().isEmpty()) {
+            throw new R2PBusinessException("Payment request details are required");
         }
     }
 
