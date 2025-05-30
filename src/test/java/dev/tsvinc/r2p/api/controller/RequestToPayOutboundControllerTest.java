@@ -1,12 +1,33 @@
 package dev.tsvinc.r2p.api.controller;
 
-import dev.tsvinc.r2p.domain.enums.Product;
-import dev.tsvinc.r2p.domain.enums.UseCase;
+import dev.tsvinc.r2p.api.dto.request.AmendR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.CancelR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.ConfirmR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.Creditor;
+import dev.tsvinc.r2p.api.dto.request.InitiateR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.MessageEvent;
+import dev.tsvinc.r2p.api.dto.request.NotificationR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.PaymentRequest;
+import dev.tsvinc.r2p.api.dto.request.PaymentRequestDetail;
+import dev.tsvinc.r2p.api.dto.request.RefundPaymentRequest;
+import dev.tsvinc.r2p.api.dto.request.RefundR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.ReminderEvent;
+import dev.tsvinc.r2p.api.dto.request.RequestOptions;
+import dev.tsvinc.r2p.api.dto.request.RequestReason;
+import dev.tsvinc.r2p.api.dto.request.SettlementOption;
+import dev.tsvinc.r2p.api.dto.request.TaggedTransaction;
+import dev.tsvinc.r2p.api.dto.request.TransactionTaggingRequest;
+import dev.tsvinc.r2p.api.dto.response.AmendR2pResponse;
+import dev.tsvinc.r2p.api.dto.response.CancelR2pResponse;
+import dev.tsvinc.r2p.api.dto.response.ConfirmR2pResponse;
+import dev.tsvinc.r2p.api.dto.response.InitiateR2pResponse;
+import dev.tsvinc.r2p.api.dto.response.PaymentRequestMinResponse;
+import dev.tsvinc.r2p.api.dto.response.RefundR2pResponse;
 import dev.tsvinc.r2p.domain.enums.AliasType;
+import dev.tsvinc.r2p.domain.enums.Product;
 import dev.tsvinc.r2p.domain.enums.SettlementSystem;
 import dev.tsvinc.r2p.domain.enums.TransactionStatus;
-import dev.tsvinc.r2p.api.dto.request.*;
-import dev.tsvinc.r2p.api.dto.response.*;
+import dev.tsvinc.r2p.domain.enums.UseCase;
 import dev.tsvinc.r2p.service.RequestToPayOutboundService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -33,11 +54,13 @@ import static org.mockito.Mockito.when;
 @WebFluxTest(RequestToPayOutboundController.class)
 @Import(RequestToPayOutboundController.class)
 @TestPropertySource(properties = {
-    "management.metrics.export.prometheus.enabled=false",
-    "management.endpoints.web.exposure.include=health,info",
-    "spring.main.web-application-type=reactive",
-    "spring.autoconfigure.exclude=org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration,org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration",
-    "spring.main.allow-bean-definition-overriding=true"
+        "management.prometheus.metrics.export.enabled=false",
+        "management.endpoints.web.exposure.include=health,info",
+        "spring.main.web-application-type=reactive",
+        "spring.autoconfigure.exclude=org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration,org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration,org.springframework.cloud.vault.config.VaultAutoConfiguration",
+        "spring.main.allow-bean-definition-overriding=true",
+        "spring.cloud.vault.enabled=false",
+        "spring.config.import="
 })
 class RequestToPayOutboundControllerTest {
 
@@ -59,7 +82,6 @@ class RequestToPayOutboundControllerTest {
     void confirmR2P_Success() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         String paymentRequestId = "PAY123456789";
 
         ConfirmR2pRequest request = new ConfirmR2pRequest(
@@ -84,7 +106,7 @@ class RequestToPayOutboundControllerTest {
                 Instant.now().toString()
         );
 
-        when(outboundService.processConfirmation(eq(paymentRequestId), eq(keyId), eq(requestAffinity), any(ConfirmR2pRequest.class)))
+        when(outboundService.processConfirmation(eq(paymentRequestId), eq(keyId), eq("test-correlation-id"), any(ConfirmR2pRequest.class)))
                 .thenReturn(Mono.just(response));
 
         // When/Then
@@ -93,7 +115,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk()
@@ -107,14 +129,13 @@ class RequestToPayOutboundControllerTest {
     void transactionTagging_Success() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
 
         TransactionTaggingRequest request = new TransactionTaggingRequest(
                 new MessageEvent("Thank you!", null),
                 new TaggedTransaction("PAYREQID12345", "R2P", null, null)
         );
 
-        when(outboundService.processTransactionTagging(eq(keyId), eq(requestAffinity), any(TransactionTaggingRequest.class)))
+        when(outboundService.processTransactionTagging(eq(keyId), eq("test-correlation-id"), any(TransactionTaggingRequest.class)))
                 .thenReturn(Mono.empty());
 
         // When/Then
@@ -123,7 +144,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk();
@@ -133,14 +154,13 @@ class RequestToPayOutboundControllerTest {
     void refundR2P_Success() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         String originalPaymentRequestId = "PAY123456789";
 
         RefundR2pRequest request = new RefundR2pRequest(
                 List.of(new RefundPaymentRequest("e2eId1", new BigDecimal("100.00"))),
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 "2024-06-01T12:00:00Z"
         );
 
@@ -157,7 +177,7 @@ class RequestToPayOutboundControllerTest {
                 Instant.now().toString()
         );
 
-        when(outboundService.processRefund(eq(originalPaymentRequestId), eq(keyId), eq(requestAffinity), any(RefundR2pRequest.class)))
+        when(outboundService.processRefund(eq(originalPaymentRequestId), eq(keyId), eq("test-correlation-id"), any(RefundR2pRequest.class)))
                 .thenReturn(Mono.just(response));
 
         // When/Then
@@ -166,7 +186,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isCreated()
@@ -180,7 +200,6 @@ class RequestToPayOutboundControllerTest {
     void cancelR2P_Success() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         String paymentRequestId = "PAY123456789";
 
         CancelR2pRequest request = new CancelR2pRequest(
@@ -196,7 +215,7 @@ class RequestToPayOutboundControllerTest {
                 Instant.now().toString()
         );
 
-        when(outboundService.processCancellation(eq(paymentRequestId), eq(keyId), eq(requestAffinity), any(CancelR2pRequest.class)))
+        when(outboundService.processCancellation(eq(paymentRequestId), eq(keyId), eq("test-correlation-id"), any(CancelR2pRequest.class)))
                 .thenReturn(Mono.just(response));
 
         // When/Then
@@ -205,7 +224,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk()
@@ -219,19 +238,18 @@ class RequestToPayOutboundControllerTest {
     void initiateR2P_Success() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
 
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
-                UseCase.B2C,
+                UseCase.P2P,
                 new RequestReason("Test reason", null, null, null),
                 List.of(new PaymentRequestDetail(
                         "e2eId1", "debtorAlias", AliasType.MOBL, "debtorAgentId", "UA", "UA", "John", "D.",
-                        new BigDecimal("100.00"), "UAH", null, null, null)),
+                        new BigDecimal("100.00"), "UAH")),
                 "2024-12-31",
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 new RequestOptions(false, false, null),
                 "2024-06-01T12:00:00Z"
         );
@@ -249,7 +267,7 @@ class RequestToPayOutboundControllerTest {
                 Instant.now().toString()
         );
 
-        when(outboundService.processInitiation(eq(keyId), eq(requestAffinity), any(InitiateR2pRequest.class)))
+        when(outboundService.processInitiation(eq(keyId), eq("test-correlation-id"), any(InitiateR2pRequest.class)))
                 .thenReturn(Mono.just(response));
 
         // When/Then
@@ -258,7 +276,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isCreated()
@@ -272,7 +290,6 @@ class RequestToPayOutboundControllerTest {
     void amendR2P_Success() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         String paymentRequestId = "PAY123456789";
 
         AmendR2pRequest request = new AmendR2pRequest(
@@ -293,7 +310,7 @@ class RequestToPayOutboundControllerTest {
                 Instant.now().toString()
         );
 
-        when(outboundService.processAmendment(eq(paymentRequestId), eq(keyId), eq(requestAffinity), any(AmendR2pRequest.class)))
+        when(outboundService.processAmendment(eq(paymentRequestId), eq(keyId), eq("test-correlation-id"), any(AmendR2pRequest.class)))
                 .thenReturn(Mono.just(response));
 
         // When/Then
@@ -302,7 +319,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk()
@@ -336,6 +353,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk();
@@ -363,7 +381,7 @@ class RequestToPayOutboundControllerTest {
                 .uri("/rtx/api/outbound/v1/requestToPay/{paymentRequestId}/confirm", paymentRequestId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                .header("x-request-affinity", "test-affinity")
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isBadRequest();
@@ -373,7 +391,6 @@ class RequestToPayOutboundControllerTest {
     void confirmR2P_InvalidContentType() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         String paymentRequestId = "PAY123456789";
         String invalidRequest = "invalid request";
 
@@ -382,7 +399,7 @@ class RequestToPayOutboundControllerTest {
                 .uri("/rtx/api/outbound/v1/requestToPay/{paymentRequestId}/confirm", paymentRequestId)
                 .contentType(MediaType.TEXT_PLAIN)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(invalidRequest)
                 .exchange()
                 .expectStatus().isEqualTo(415); // 415 Unsupported Media Type
@@ -392,7 +409,6 @@ class RequestToPayOutboundControllerTest {
     void confirmR2P_ServiceError() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         String paymentRequestId = "PAY123456789";
 
         ConfirmR2pRequest request = new ConfirmR2pRequest(
@@ -408,7 +424,7 @@ class RequestToPayOutboundControllerTest {
                 "2024-06-01T12:00:00Z"
         );
 
-        when(outboundService.processConfirmation(eq(paymentRequestId), eq(keyId), eq(requestAffinity), any(ConfirmR2pRequest.class)))
+        when(outboundService.processConfirmation(eq(paymentRequestId), eq(keyId), eq("test-correlation-id"), any(ConfirmR2pRequest.class)))
                 .thenReturn(Mono.error(new RuntimeException("Service error")));
 
         // When/Then
@@ -417,7 +433,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().is5xxServerError();
@@ -428,15 +444,15 @@ class RequestToPayOutboundControllerTest {
         // Given
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
-                UseCase.B2C,
+                UseCase.P2P,
                 new RequestReason("Test reason", null, null, null),
                 List.of(new PaymentRequestDetail(
                         "e2eId1", "debtorAlias", AliasType.MOBL, "debtorAgentId", "UA", "UA", "John", "D.",
-                        new BigDecimal("100.00"), "UAH", null, null, null)),
+                        new BigDecimal("100.00"), "UAH")),
                 "2024-12-31",
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 new RequestOptions(false, false, null),
                 "2024-06-01T12:00:00Z"
         );
@@ -446,7 +462,7 @@ class RequestToPayOutboundControllerTest {
                 .uri("/rtx/api/outbound/v1/requestToPay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                .header("x-request-affinity", "test-affinity")
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isBadRequest();
@@ -456,7 +472,6 @@ class RequestToPayOutboundControllerTest {
     void initiateR2P_InvalidContentType() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         String invalidRequest = "invalid request";
 
         // When/Then
@@ -464,7 +479,7 @@ class RequestToPayOutboundControllerTest {
                 .uri("/rtx/api/outbound/v1/requestToPay")
                 .contentType(MediaType.TEXT_PLAIN)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(invalidRequest)
                 .exchange()
                 .expectStatus().isEqualTo(415); // 415 Unsupported Media Type
@@ -474,22 +489,21 @@ class RequestToPayOutboundControllerTest {
     void initiateR2P_ServiceError() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
-                UseCase.B2C,
+                UseCase.P2P,
                 new RequestReason("Test reason", null, null, null),
                 List.of(new PaymentRequestDetail(
                         "e2eId1", "debtorAlias", AliasType.MOBL, "debtorAgentId", "UA", "UA", "John", "D.",
-                        new BigDecimal("100.00"), "UAH", null, null, null)),
+                        new BigDecimal("100.00"), "UAH")),
                 "2024-12-31",
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 new RequestOptions(false, false, null),
                 "2024-06-01T12:00:00Z"
         );
-        when(outboundService.processInitiation(eq(keyId), eq(requestAffinity), any(InitiateR2pRequest.class)))
+        when(outboundService.processInitiation(eq(keyId), eq("test-correlation-id"), any(InitiateR2pRequest.class)))
                 .thenReturn(Mono.error(new RuntimeException("Service error")));
 
         // When/Then
@@ -498,7 +512,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().is5xxServerError();
@@ -512,13 +526,13 @@ class RequestToPayOutboundControllerTest {
         // Invalid: paymentRequests is empty
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
-                UseCase.B2C,
+                UseCase.P2P,
                 new RequestReason("Test reason", null, null, null),
                 List.of(),
                 "2024-12-31",
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 new RequestOptions(false, false, null),
                 "2024-06-01T12:00:00Z"
         );
@@ -529,7 +543,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isBadRequest();
@@ -542,19 +556,19 @@ class RequestToPayOutboundControllerTest {
         String requestAffinity = "test-affinity";
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
-                UseCase.B2C,
+                UseCase.P2P,
                 new RequestReason("Test reason", null, null, null),
                 List.of(new PaymentRequestDetail(
                         "e2eId1", "debtorAlias", AliasType.MOBL, "debtorAgentId", "UA", "UA", "John", "D.",
-                        new BigDecimal("100.00"), "UAH", null, null, null)),
+                        new BigDecimal("100.00"), "UAH")),
                 "2024-12-31",
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 new RequestOptions(false, false, null),
                 "2024-06-01T12:00:00Z"
         );
-        when(outboundService.processInitiation(eq(keyId), eq(requestAffinity), any(InitiateR2pRequest.class)))
+        when(outboundService.processInitiation(eq(keyId), eq("test-correlation-id"), any(InitiateR2pRequest.class)))
                 .thenReturn(Mono.error(new dev.tsvinc.r2p.exception.R2PNotFoundException("Not found")));
 
         // When/Then
@@ -563,7 +577,7 @@ class RequestToPayOutboundControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .header("keyID", keyId)
-                .header("x-request-affinity", requestAffinity)
+                .header("x-correlation-id", "test-correlation-id")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isNotFound();

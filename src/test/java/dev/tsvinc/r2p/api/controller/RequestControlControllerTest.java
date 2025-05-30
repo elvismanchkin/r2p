@@ -34,7 +34,8 @@ import static org.mockito.Mockito.when;
     "spring.autoconfigure.exclude=org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration,org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration",
     "spring.main.allow-bean-definition-overriding=true",
     "spring.redis.host=localhost",
-    "spring.redis.port=6379"
+    "spring.redis.port=6379",
+    "spring.cloud.vault.enabled=false"
 })
 class RequestControlControllerTest {
 
@@ -74,8 +75,7 @@ class RequestControlControllerTest {
                         "PAYEE1",
                         "VISA",
                         "John",
-                        "Doe",
-                        null
+                        "Doe"
                 )),
                 "REQ123456789",
                 "RESP987654321",

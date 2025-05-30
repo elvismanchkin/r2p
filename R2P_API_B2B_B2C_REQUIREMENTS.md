@@ -1,6 +1,6 @@
-# Visa Direct Request to Pay (R2P) API: B2B and B2C Requirements
+# Visa Direct Request to Pay (R2P) API: P2P Requirements Only
 
-This document summarizes the requirements for B2B and B2C use cases based on the Visa Direct Request to Pay API specification. It also clarifies which APIs must be implemented by the receiving side (outbound APIs) and which must be called by the client (Visa endpoints).
+This document summarizes the requirements for P2P (Person-to-Person) use cases based on the Visa Direct Request to Pay API specification. Only P2P is supported in this implementation.
 
 ---
 
@@ -35,34 +35,32 @@ All other endpoints (e.g., under `/rtx/api/v1/`) are Visa endpoints and must be 
 
 ---
 
-## 4. B2B and B2C Requirements
+## 4. P2P Requirements
 
-### 4.1. B2C Requirements
+**P2P** (Person-to-Person) refers to requests where an individual initiates a payment request to another individual.
 
-**B2C** (Business-to-Consumer) refers to requests where a business initiates a payment request to a consumer.
+#### Required Fields for P2P (in payloads):
 
-#### Required Fields for B2C (in payloads):
-
-- `creditorBusinessName`: **Required**. Name of the business entity submitting the R2P request.
-- `creditorMcc`: **Required**. Merchant Category Code for the business.
+- `creditorFirstName` and `creditorLastName`: **Required**. First and last name of the payee.
 - `creditorCountry` and `creditorAgentCountry`: **Required**. ISO country codes.
-- `creditorTaxId`: **Required** for certain countries (e.g., UA, DE).
-- `nationalIdentifiers`: Optional in Visa API, but **required where local regulation mandates**.
+- `creditorAgentId`: **Required**. Payee's agent ID.
+- `creditorAlias` and `creditorAliasType`: Optional, but if alias is provided, alias type must be provided.
+- `nationalIdentifiers`: Optional.
 - `requestReason`: Must include a valid payment purpose and may include references (e.g., invoice ID).
 - `paymentRequests`: Must include payer details (see below).
 
-**Payer (Consumer) Details:**
-- `debtorFirstName` and `debtorLastName`: Optional for B2C (but required for P2P).
+**Payer (Sender) Details:**
+- `debtorFirstName` and `debtorLastName`: **Required** for P2P.
 - `debtorAlias` and `debtorAliasType`: Required.
 - `debtorAgentId`, `debtorCountry`, `debtorAgentCountry`: Required.
 - `requestedAmount` and `requestedAmountCurrency`: Required.
 
-#### Example B2C Initiate Request Payload
+#### Example P2P Initiate Request Payload
 
 ```json
 {
   "product": "VD",
-  "useCase": "B2C",
+  "useCase": "P2P",
   "requestReason": {
     "references": [
       {
@@ -76,6 +74,8 @@ All other endpoints (e.g., under `/rtx/api/v1/`) are Visa endpoints and must be 
   },
   "paymentRequests": [
     {
+      "debtorFirstName": "John",
+      "debtorLastName": "B.",
       "debtorAlias": "+447709123457",
       "debtorAliasType": "MOBL",
       "debtorAgentId": "VD123445",
@@ -96,50 +96,34 @@ All other endpoints (e.g., under `/rtx/api/v1/`) are Visa endpoints and must be 
 }
 ```
 
-#### Validation Notes for B2C
+#### Validation Notes for P2P
 
-- `creditorBusinessName` and `creditorMcc` are **mandatory**.
-- `creditorTaxId` is **mandatory** for some countries.
-- `debtorFirstName` and `debtorLastName` are **optional** for B2C, but may be required by local regulation.
-- `nationalIdentifiers` may be required by local regulation.
-
----
-
-### 4.2. B2B Requirements
-
-**B2B** (Business-to-Business) is not explicitly described in the provided API spec. If B2B is to be supported, it would likely follow the B2C pattern, but with both creditor and debtor being businesses.
-
-**Typical B2B requirements (by analogy to B2C):**
-- Both `creditorBusinessName` and `debtorBusinessName` would be required.
-- `creditorMcc`, `creditorCountry`, `creditorAgentCountry`, and `creditorTaxId` would be required.
-- `debtorBusinessName`, `debtorAgentId`, `debtorCountry`, `debtorAgentCountry`, and `debtorTaxId` would be required.
-- All other fields as per B2C.
-
-**Note:**  
-If you need to support B2B, confirm with Visa or your business analyst for any additional or different requirements, as the current API spec and examples focus on B2C and P2P.
+- `creditorFirstName` and `creditorLastName` are **mandatory**.
+- `debtorFirstName` and `debtorLastName` are **mandatory**.
+- `creditorCountry`, `creditorAgentCountry`, `debtorCountry`, `debtorAgentCountry` are **mandatory**.
+- `requestedAmount` and `requestedAmountCurrency` are **mandatory**.
 
 ---
 
 ## 5. Field Requirements Summary
 
-| Field                   | B2C Required | B2B Required (assumed) | Notes                                                      |
-|-------------------------|:------------:|:----------------------:|------------------------------------------------------------|
-| creditorBusinessName    | Yes          | Yes                    | Name of business entity                                    |
-| creditorMcc             | Yes          | Yes                    | Merchant Category Code                                     |
-| creditorCountry         | Yes          | Yes                    | ISO country code                                           |
-| creditorAgentCountry    | Yes          | Yes                    | ISO country code                                           |
-| creditorTaxId           | Yes*         | Yes*                   | Required for some countries                                |
-| nationalIdentifiers     | Yes*         | Yes*                   | Required where local regulation mandates                   |
-| debtorBusinessName      | No           | Yes                    | Required for B2B debtor                                    |
-| debtorFirstName/LastName| Optional     | No                     | Optional for B2C, not used for B2B                         |
-| debtorAlias/Type        | Yes          | Yes                    | Alias and type for payer                                   |
-| debtorAgentId           | Yes          | Yes                    | Payer's agent ID                                           |
-| debtorCountry           | Yes          | Yes                    | Payer's country                                            |
-| debtorAgentCountry      | Yes          | Yes                    | Payer's agent country                                      |
-| requestedAmount         | Yes          | Yes                    | Amount requested                                           |
-| requestedAmountCurrency | Yes          | Yes                    | Currency                                                   |
-
-\* = Required only in certain countries or regulatory environments.
+| Field                   | P2P Required | Notes                                                      |
+|-------------------------|:------------:|------------------------------------------------------------|
+| creditorFirstName       | Yes          | First name of payee                                        |
+| creditorLastName        | Yes          | Last name of payee                                         |
+| creditorCountry         | Yes          | ISO country code                                           |
+| creditorAgentCountry    | Yes          | ISO country code                                           |
+| creditorAgentId         | Yes          | Payee's agent ID                                           |
+| creditorAlias/Type      | Optional     | If alias is provided, type is required                     |
+| nationalIdentifiers     | Optional     |                                                            |
+| debtorFirstName         | Yes          | First name of payer                                        |
+| debtorLastName          | Yes          | Last name of payer                                         |
+| debtorAlias/Type        | Yes          | Alias and type for payer                                   |
+| debtorAgentId           | Yes          | Payer's agent ID                                           |
+| debtorCountry           | Yes          | Payer's country                                            |
+| debtorAgentCountry      | Yes          | Payer's agent country                                      |
+| requestedAmount         | Yes          | Amount requested                                           |
+| requestedAmountCurrency | Yes          | Currency                                                   |
 
 ---
 
@@ -151,4 +135,4 @@ If you need to support B2B, confirm with Visa or your business analyst for any a
 
 ---
 
-**If you need further clarification on B2B, consult Visa documentation or your business analyst, as the current API spec is focused on B2C and P2P.** 
+**Only P2P is supported in this implementation.** 

@@ -18,23 +18,12 @@ public record Creditor(
         AliasType creditorAliasType,
         @Size(max = 140) String creditorFirstName,
         @Size(max = 140) @Pattern(regexp = "^[A-Z]\\.?$") String creditorLastName,
-        @Size(max = 140) String creditorBusinessName,
-        @Size(min = 3, max = 4) String creditorMcc,
-        @Size(max = 20) String creditorTaxId,
         @Valid List<NationalIdentifier> nationalIdentifiers
 ) {
     public Creditor {
-        // Validate based on use case
-        if (creditorBusinessName != null && !creditorBusinessName.isBlank()) {
-            // B2C validations
-            if (creditorMcc == null || creditorMcc.isBlank()) {
-                throw new IllegalArgumentException("MCC is required for B2C");
-            }
-        } else {
-            // P2P validations
-            if (creditorFirstName == null || creditorLastName == null) {
-                throw new IllegalArgumentException("First and last name required for P2P");
-            }
+        // Only P2P validations
+        if (creditorFirstName == null || creditorLastName == null) {
+            throw new IllegalArgumentException("First and last name required for P2P");
         }
     }
 }

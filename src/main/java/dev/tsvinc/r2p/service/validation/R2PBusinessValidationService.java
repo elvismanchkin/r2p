@@ -90,12 +90,8 @@ public class R2PBusinessValidationService {
         validateCountryCode(creditor.creditorCountry());
         validateCountryCode(creditor.creditorAgentCountry());
 
-        // Use case specific validation
-        if (useCase == UseCase.B2C) {
-            validateB2CCreditor(creditor);
-        } else {
-            validateP2PCreditor(creditor);
-        }
+        // Only P2P validation
+        validateP2PCreditor(creditor);
 
         // Alias validation
         if (creditor.creditorAlias() != null) {
@@ -119,22 +115,6 @@ public class R2PBusinessValidationService {
 
         // Name validation by country
         validateNameFormat(request.debtorFirstName(), request.debtorLastName(), request.debtorCountry());
-    }
-
-    private void validateB2CCreditor(Creditor creditor) {
-        if (creditor.creditorBusinessName() == null || creditor.creditorBusinessName().isBlank()) {
-            throw new R2PBusinessException("Business name is required for B2C transactions");
-        }
-
-        if (creditor.creditorMcc() == null || !SUPPORTED_MCCS.contains(creditor.creditorMcc())) {
-            throw new R2PBusinessException("Valid MCC is required for B2C transactions");
-        }
-
-        // Tax ID validation for certain countries
-        if (("UA".equals(creditor.creditorCountry()) || "DE".equals(creditor.creditorCountry()))
-                && creditor.creditorTaxId() == null) {
-            throw new R2PBusinessException("Tax ID is required for B2C in " + creditor.creditorCountry());
-        }
     }
 
     private void validateP2PCreditor(Creditor creditor) {

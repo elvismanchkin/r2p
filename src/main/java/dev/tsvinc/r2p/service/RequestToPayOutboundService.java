@@ -249,7 +249,7 @@ public class RequestToPayOutboundService {
             refundTransaction.setEndToEndId(refundRequest.endToEndId());
             refundTransaction.setRequestMessageId(request.requestMessageId());
             refundTransaction.setTransactionStatus(TransactionStatus.PDNG);
-            refundTransaction.setUseCase(UseCase.B2C.name());
+            refundTransaction.setUseCase(UseCase.P2P.name());
             refundTransaction.setRequestedAmount(refundRequest.requestedAmount()); // BigDecimal
             refundTransaction.setRequestedAmountCurrency(originalTransaction.getRequestedAmountCurrency());
             refundTransaction.setOriginalPaymentRequestId(originalTransaction.getPaymentRequestId());

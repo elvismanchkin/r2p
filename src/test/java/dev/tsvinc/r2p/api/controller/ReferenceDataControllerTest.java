@@ -29,13 +29,14 @@ import static org.mockito.Mockito.when;
 @WebFluxTest(ReferenceDataController.class)
 @Import(ReferenceDataController.class)
 @TestPropertySource(properties = {
-    "management.metrics.export.prometheus.enabled=false",
+    "management.prometheus.metrics.export.enabled=false",
     "management.endpoints.web.exposure.include=health,info",
     "spring.main.web-application-type=reactive",
     "spring.autoconfigure.exclude=org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration,org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration",
     "spring.main.allow-bean-definition-overriding=true",
-    "spring.redis.host=localhost",
-    "spring.redis.port=6379"
+    "spring.data.redis.host=localhost",
+    "spring.data.redis.port=6379",
+    "spring.cloud.vault.enabled=false"
 })
 class ReferenceDataControllerTest {
 

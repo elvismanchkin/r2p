@@ -20,10 +20,6 @@ public record PaymentRequestDetail(
         @NotBlank @Size(max = 140) String debtorFirstName,
         @NotBlank @Size(max = 140) @Pattern(regexp = "^[A-Z]\\.?$") String debtorLastName,
         @NotNull @DecimalMin(value = "0.01") BigDecimal requestedAmount,
-        @NotBlank @Size(min = 3, max = 3) String requestedAmountCurrency,
-        // Optional fields from Swagger
-        @Size(max = 35) String debtorId,
-        @Pattern(regexp = "AGENT|AGENTPR") String debtorIdType,
-        @Size(max = 140) String debtorBusinessName // for B2C refunds
+        @NotBlank @Size(min = 3, max = 3) String requestedAmountCurrency
 ) {
 }

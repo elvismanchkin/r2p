@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import reactor.core.publisher.Mono;
-
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.WebClient;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -185,5 +187,14 @@ public class GlobalExceptionHandler {
     private String extractRequestMessageId(WebExchangeBindException ex) {
         // Extract from request body if available
         return "UNKNOWN";
+    }
+
+    private ExchangeFilterFunction addVisaRequiredHeaders() {
+        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
+            ClientRequest newRequest = ClientRequest.from(clientRequest)
+                .header("X-Request-Timestamp", Instant.now().toString())
+                .build();
+            return Mono.just(newRequest);
+        });
     }
 }

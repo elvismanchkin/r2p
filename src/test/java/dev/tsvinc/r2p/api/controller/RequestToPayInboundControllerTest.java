@@ -46,7 +46,8 @@ import static org.mockito.Mockito.when;
     "spring.autoconfigure.exclude=org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration,org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration",
     "spring.main.allow-bean-definition-overriding=true",
     "spring.redis.host=localhost",
-    "spring.redis.port=6379"
+    "spring.redis.port=6379",
+    "spring.cloud.vault.enabled=false"
 })
 class RequestToPayInboundControllerTest {
 
@@ -76,15 +77,15 @@ class RequestToPayInboundControllerTest {
 
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
-                UseCase.B2C,
+                UseCase.P2P,
                 new RequestReason("Test reason", null, null, null),
                 List.of(new PaymentRequestDetail(
                         "e2eId1", "debtorAlias", AliasType.MOBL, "debtorAgentId", "UA", "UA", "John", "D.",
-                        new BigDecimal("100.00"), "UAH", null, null, null)),
+                        new BigDecimal("100.00"), "UAH")),
                 "2024-12-31",
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 null,
                 "2024-06-01T12:00:00Z"
         );
@@ -334,7 +335,7 @@ class RequestToPayInboundControllerTest {
                 List.of(new RefundPaymentRequest("e2eId1", new BigDecimal("100.00"))),
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 "2024-06-01T12:00:00Z"
         );
 
@@ -425,16 +426,15 @@ class RequestToPayInboundControllerTest {
         String keyId = "test-key-id";
         InitiateR2pRequest request = new InitiateR2pRequest(
                 null, // Invalid Product
-                UseCase.B2C,
+                UseCase.P2P,
                 new RequestReason("Test reason", null, null, null),
                 List.of(new PaymentRequestDetail(
                         "e2eId1", "debtorAlias", AliasType.MOBL, "debtorAgentId", "UA", "UA", "John", "D.",
-                        new BigDecimal("100.00"), "UAH", null, null, null
-                )),
+                        new BigDecimal("100.00"), "UAH")),
                 "2024-12-31",
                 "REQ123456789",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 null,
                 Instant.now().toString()
         );
@@ -490,17 +490,17 @@ class RequestToPayInboundControllerTest {
         // Given
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
-                UseCase.B2C,
+                UseCase.P2P,
                 new RequestReason("Test reason", null, null, null),
                 List.of(new PaymentRequestDetail(
                         "e2eId1", "debtorAlias", AliasType.MOBL, "debtorAgentId", "UA", "UA", "John", "D.",
-                        new BigDecimal("100.00"), "UAH", null, null, null)),
+                        new BigDecimal("100.00"), "UAH")),
                 "2024-12-31",
                 "REQMSGID12345",
                 List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+                new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
                 null,
-                "2024-06-01T12:00:00Z"
+                Instant.now().toString()
         );
 
         // When/Then
@@ -643,7 +643,7 @@ class RequestToPayInboundControllerTest {
             List.of(new RefundPaymentRequest("e2eId1", new BigDecimal("100.00"))),
             "REQMSGID12345",
             List.of(new SettlementOption(SettlementSystem.VISA_DIRECT, "4145123412341234", null, null)),
-            new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", null, null, null, List.of()),
+            new Creditor("agentId", "UA", "UA", null, AliasType.MOBL, "Jane", "D.", List.of()),
             "2024-06-01T12:00:00Z"
         );
 
