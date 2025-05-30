@@ -3,16 +3,13 @@ package dev.tsvinc.r2p.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.RedisSerializationContext;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 
@@ -33,6 +30,7 @@ public class RedisConfig {
     private int database;
 
     @Bean
+    @Primary
     public ReactiveRedisConnectionFactory reactiveRedisConnectionFactory() {
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .commandTimeout(Duration.ofSeconds(2))
@@ -46,19 +44,5 @@ public class RedisConfig {
         }
 
         return new LettuceConnectionFactory(serverConfig, clientConfig);
-    }
-
-    @Bean
-    public ReactiveRedisTemplate<String, Long> redisRateLimiterTemplate(ReactiveRedisConnectionFactory factory) {
-        Jackson2JsonRedisSerializer<Long> valueSerializer = new Jackson2JsonRedisSerializer<>(Long.class);
-
-        RedisSerializationContext.RedisSerializationContextBuilder<String, Long> builder =
-                RedisSerializationContext.newSerializationContext(new StringRedisSerializer());
-
-        RedisSerializationContext<String, Long> context = builder
-                .value(valueSerializer)
-                .build();
-
-        return new ReactiveRedisTemplate<>(factory, context);
     }
 }
