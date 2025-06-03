@@ -60,16 +60,15 @@ public class RequestToPayOutboundController {
     public Mono<ResponseEntity<ConfirmR2pResponse>> confirmR2P(
             @Parameter(description = "Request to Pay transaction ID", required = true)
             @PathVariable String paymentRequestId,
-            @RequestHeader("Content-Type") String contentType,
-            @RequestHeader("keyID") String keyId,
-            @RequestHeader("x-request-affinity") String requestAffinity,
+            @RequestHeader(value = "keyID", required = true) String keyId,
+            @RequestHeader(value = "x-correlation-id", required = false) String correlationId,
             @Valid @RequestBody ConfirmR2pRequest request) {
 
         return Mono.defer(() -> {
             log.info("Received confirm R2P notification - paymentRequestId: {}, status: {}",
                     paymentRequestId, request.transactionStatus());
 
-            return outboundService.processConfirmation(paymentRequestId, keyId, requestAffinity, request)
+            return outboundService.processConfirmation(paymentRequestId, keyId, correlationId, request)
                     .map(response -> ResponseEntity.ok()
                             .header("x-correlation-id", UUID.randomUUID().toString())
                             .body(response))
@@ -84,9 +83,8 @@ public class RequestToPayOutboundController {
     @PostMapping(value = "/transaction/tag",
             consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Void>> transactionTagging(
-            @RequestHeader("Content-Type") String contentType,
-            @RequestHeader("keyID") String keyId,
-            @RequestHeader(value = "x-request-affinity", required = false) String requestAffinity,
+            @RequestHeader(value = "keyID", required = true) String keyId,
+            @RequestHeader(value = "x-correlation-id", required = false) String correlationId,
             @Valid @RequestBody TransactionTaggingRequest request) {
 
         return Mono.defer(() -> {
@@ -94,7 +92,7 @@ public class RequestToPayOutboundController {
                     request.taggedTransaction().transactionId(),
                     request.taggedTransaction().transactionIdType());
 
-            return outboundService.processTransactionTagging(keyId, requestAffinity, request)
+            return outboundService.processTransactionTagging(keyId, correlationId, request)
                     .then(Mono.just(ResponseEntity.ok().<Void>build()))
                     .doOnSuccess(v -> log.info("Transaction tagging processed successfully"))
                     .onErrorResume(error -> handleError("tagging",
@@ -110,16 +108,15 @@ public class RequestToPayOutboundController {
     public Mono<ResponseEntity<RefundR2pResponse>> refundR2P(
             @Parameter(description = "Original payment request ID", required = true)
             @PathVariable String originalPaymentRequestId,
-            @RequestHeader("Content-Type") String contentType,
-            @RequestHeader("keyID") String keyId,
-            @RequestHeader("x-request-affinity") String requestAffinity,
+            @RequestHeader(value = "keyID", required = true) String keyId,
+            @RequestHeader(value = "x-correlation-id", required = false) String correlationId,
             @Valid @RequestBody RefundR2pRequest request) {
 
         return Mono.defer(() -> {
             log.info("Received refund R2P notification - originalPaymentRequestId: {}",
                     originalPaymentRequestId);
 
-            return outboundService.processRefund(originalPaymentRequestId, keyId, requestAffinity, request)
+            return outboundService.processRefund(originalPaymentRequestId, keyId, correlationId, request)
                     .map(response -> ResponseEntity.status(HttpStatus.CREATED)
                             .header("x-correlation-id", UUID.randomUUID().toString())
                             .body(response))
@@ -137,16 +134,15 @@ public class RequestToPayOutboundController {
     public Mono<ResponseEntity<CancelR2pResponse>> cancelR2P(
             @Parameter(description = "Request to Pay transaction ID", required = true)
             @PathVariable String paymentRequestId,
-            @RequestHeader("Content-Type") String contentType,
-            @RequestHeader("keyID") String keyId,
-            @RequestHeader("x-request-affinity") String requestAffinity,
+            @RequestHeader(value = "keyID", required = true) String keyId,
+            @RequestHeader(value = "x-correlation-id", required = false) String correlationId,
             @Valid @RequestBody CancelR2pRequest request) {
 
         return Mono.defer(() -> {
             log.info("Received cancel R2P notification - paymentRequestId: {}, reason: {}",
                     paymentRequestId, request.cancellationReason());
 
-            return outboundService.processCancellation(paymentRequestId, keyId, requestAffinity, request)
+            return outboundService.processCancellation(paymentRequestId, keyId, correlationId, request)
                     .map(response -> ResponseEntity.ok()
                             .header("x-correlation-id", UUID.randomUUID().toString())
                             .body(response))
@@ -161,16 +157,15 @@ public class RequestToPayOutboundController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<InitiateR2pResponse>> initiateR2P(
-            @RequestHeader("Content-Type") String contentType,
-            @RequestHeader("keyID") String keyId,
-            @RequestHeader("x-request-affinity") String requestAffinity,
+            @RequestHeader(value = "keyID", required = true) String keyId,
+            @RequestHeader(value = "x-correlation-id", required = false) String correlationId,
             @Valid @RequestBody InitiateR2pRequest request) {
 
         return Mono.defer(() -> {
             log.info("Received initiate R2P notification - requestMessageId: {}, useCase: {}",
                     request.requestMessageId(), request.useCase());
 
-            return outboundService.processInitiation(keyId, requestAffinity, request)
+            return outboundService.processInitiation(keyId, correlationId, request)
                     .map(response -> ResponseEntity.status(HttpStatus.CREATED)
                             .header("x-correlation-id", UUID.randomUUID().toString())
                             .body(response))
@@ -188,15 +183,14 @@ public class RequestToPayOutboundController {
     public Mono<ResponseEntity<AmendR2pResponse>> amendR2P(
             @Parameter(description = "Request to Pay transaction ID", required = true)
             @PathVariable String paymentRequestId,
-            @RequestHeader("Content-Type") String contentType,
-            @RequestHeader("keyID") String keyId,
-            @RequestHeader("x-request-affinity") String requestAffinity,
+            @RequestHeader(value = "keyID", required = true) String keyId,
+            @RequestHeader(value = "x-correlation-id", required = false) String correlationId,
             @Valid @RequestBody AmendR2pRequest request) {
 
         return Mono.defer(() -> {
             log.info("Received amend R2P notification - paymentRequestId: {}", paymentRequestId);
 
-            return outboundService.processAmendment(paymentRequestId, keyId, requestAffinity, request)
+            return outboundService.processAmendment(paymentRequestId, keyId, correlationId, request)
                     .map(response -> ResponseEntity.ok()
                             .header("x-correlation-id", UUID.randomUUID().toString())
                             .body(response))
@@ -211,8 +205,8 @@ public class RequestToPayOutboundController {
     @PostMapping(value = "/notifications",
             consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Void>> notifications(
-            @RequestHeader("Content-Type") String contentType,
-            @RequestHeader("keyID") String keyId,
+            @RequestHeader(value = "keyID", required = true) String keyId,
+            @RequestHeader(value = "x-correlation-id", required = false) String correlationId,
             @Valid @RequestBody NotificationR2pRequest request) {
 
         return Mono.defer(() -> {
@@ -226,60 +220,30 @@ public class RequestToPayOutboundController {
         });
     }
 
-    /*private <T> Mono<ResponseEntity<T>> handleError(String operation, String identifier, Throwable error) {
-        log.error("Error processing {} for {}: {}", operation, identifier, error.getMessage(), error);
-
-        if (error instanceof R2PValidationException || error instanceof R2PBusinessException) {
-            return Mono.just(ResponseEntity.badRequest().build());
-        }
-        if (error instanceof R2PNotFoundException) {
-            return Mono.just(ResponseEntity.notFound().build());
-        }
-
-        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
-    }*/
-
     private <T> Mono<ResponseEntity<T>> handleError(String operation, String identifier, Throwable error) {
         log.error("Error processing {} for {}: {}", operation, identifier, error.getMessage(), error);
 
-        if (error instanceof R2PValidationException || error instanceof R2PBusinessException) {
-            ErrorResponse errorResponse = new ErrorResponse(
-                    "RC2000",
-                    error.getMessage(),
-                    LocalDateTime.now().toString(),
-                    identifier,
-                    UUID.randomUUID().toString(),
-                    List.of()
-            );
-            return Mono.just(ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body((T) errorResponse));
-        }
-
-        if (error instanceof R2PNotFoundException) {
-            ErrorResponse errorResponse = new ErrorResponse(
-                    "RC4000",
-                    error.getMessage(),
-                    LocalDateTime.now().toString(),
-                    identifier,
-                    UUID.randomUUID().toString(),
-                    List.of()
-            );
-            return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body((T) errorResponse));
-        }
-
         ErrorResponse errorResponse = new ErrorResponse(
-                "RC5000",
+                error instanceof R2PValidationException || error instanceof R2PBusinessException ? "RC2000" :
+                error instanceof R2PNotFoundException ? "RC4000" : "RC5000",
+                error instanceof R2PNotFoundException ? error.getMessage() : 
+                error instanceof R2PValidationException || error instanceof R2PBusinessException ? error.getMessage() :
                 "An unexpected error occurred",
                 LocalDateTime.now().toString(),
                 identifier,
                 UUID.randomUUID().toString(),
                 List.of()
         );
-        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+
+        HttpStatus status = error instanceof R2PValidationException || error instanceof R2PBusinessException ? 
+                HttpStatus.BAD_REQUEST :
+                error instanceof R2PNotFoundException ? HttpStatus.NOT_FOUND :
+                HttpStatus.INTERNAL_SERVER_ERROR;
+
+        @SuppressWarnings("unchecked")
+        T response = (T) errorResponse;
+        return Mono.just(ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body((T) errorResponse));
+                .body(response));
     }
 }

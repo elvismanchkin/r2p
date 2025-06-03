@@ -1,9 +1,12 @@
 package dev.tsvinc.r2p.service.validation;
 
-
+import dev.tsvinc.r2p.api.dto.request.AmendR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.CancelR2pRequest;
+import dev.tsvinc.r2p.api.dto.request.ConfirmR2pRequest;
 import dev.tsvinc.r2p.api.dto.request.Creditor;
 import dev.tsvinc.r2p.api.dto.request.InitiateR2pRequest;
 import dev.tsvinc.r2p.api.dto.request.PaymentRequestDetail;
+import dev.tsvinc.r2p.api.dto.request.RefundR2pRequest;
 import dev.tsvinc.r2p.domain.enums.UseCase;
 import dev.tsvinc.r2p.exception.R2PBusinessException;
 import lombok.extern.slf4j.Slf4j;
@@ -46,17 +49,49 @@ public class R2PBusinessValidationService {
         }
     }
 
+    public void validateConfirmRequest(ConfirmR2pRequest request) {
+        if (request.requestMessageId() == null || request.requestMessageId().isBlank()) {
+            throw new R2PBusinessException("Request message ID is required");
+        }
+        if (request.transactionStatus() == null) {
+            throw new R2PBusinessException("Transaction status is required");
+        }
+    }
+
+    public void validateCancelRequest(CancelR2pRequest request) {
+        if (request.requestMessageId() == null || request.requestMessageId().isBlank()) {
+            throw new R2PBusinessException("Request message ID is required");
+        }
+        if (request.cancellationReason() == null || request.cancellationReason().isBlank()) {
+            throw new R2PBusinessException("Cancellation reason is required");
+        }
+    }
+
+    public void validateAmendRequest(AmendR2pRequest request) {
+        if (request.requestMessageId() == null || request.requestMessageId().isBlank()) {
+            throw new R2PBusinessException("Request message ID is required");
+        }
+        if (request.dueDate() != null) {
+            validateDueDate(request.dueDate());
+        }
+    }
+
+    public void validateRefundRequest(RefundR2pRequest request) {
+        if (request.requestMessageId() == null || request.requestMessageId().isBlank()) {
+            throw new R2PBusinessException("Request message ID is required");
+        }
+        if (request.paymentRequests() == null || request.paymentRequests().isEmpty()) {
+            throw new R2PBusinessException("Payment request details are required");
+        }
+    }
+
     public void validateCreditor(Creditor creditor, UseCase useCase) {
         // Country validation
         validateCountryCode(creditor.creditorCountry());
         validateCountryCode(creditor.creditorAgentCountry());
 
-        // Use case specific validation
-        if (useCase == UseCase.B2C) {
-            validateB2CCreditor(creditor);
-        } else {
-            validateP2PCreditor(creditor);
-        }
+        // Only P2P validation
+        validateP2PCreditor(creditor);
 
         // Alias validation
         if (creditor.creditorAlias() != null) {
@@ -80,22 +115,6 @@ public class R2PBusinessValidationService {
 
         // Name validation by country
         validateNameFormat(request.debtorFirstName(), request.debtorLastName(), request.debtorCountry());
-    }
-
-    private void validateB2CCreditor(Creditor creditor) {
-        if (creditor.creditorBusinessName() == null || creditor.creditorBusinessName().isBlank()) {
-            throw new R2PBusinessException("Business name is required for B2C transactions");
-        }
-
-        if (creditor.creditorMcc() == null || !SUPPORTED_MCCS.contains(creditor.creditorMcc())) {
-            throw new R2PBusinessException("Valid MCC is required for B2C transactions");
-        }
-
-        // Tax ID validation for certain countries
-        if (("UA".equals(creditor.creditorCountry()) || "DE".equals(creditor.creditorCountry()))
-                && creditor.creditorTaxId() == null) {
-            throw new R2PBusinessException("Tax ID is required for B2C in " + creditor.creditorCountry());
-        }
     }
 
     private void validateP2PCreditor(Creditor creditor) {

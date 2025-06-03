@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import reactor.core.publisher.Mono;
-
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.WebClient;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,13 +45,15 @@ public class GlobalExceptionHandler {
         return Mono.just(ResponseEntity.badRequest().body(errorResponse));
     }
 
-
     @ExceptionHandler(R2PTransactionNotFoundException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleTransactionNotFoundException(R2PTransactionNotFoundException ex) {
+    public Mono<ResponseEntity<ExtendedErrorResponse>> handleTransactionNotFoundException(R2PTransactionNotFoundException ex) {
         log.error("Transaction not found: {}", ex.getMessage());
-        return Mono.just(ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(createErrorResponse("RC4000", ex.getMessage())));
+        ExtendedErrorResponse errorResponse = createErrorResponse(
+                R2PErrorCode.RC4001,
+                "UNKNOWN",
+                List.of()
+        );
+        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse));
     }
 
     @ExceptionHandler(R2PTransactionValidationException.class)
@@ -69,11 +73,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleGenericException(Exception ex) {
+    public Mono<ResponseEntity<ExtendedErrorResponse>> handleGenericException(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
-        return Mono.just(ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(createErrorResponse("RC5000", "An unexpected error occurred")));
+        ExtendedErrorResponse errorResponse = createErrorResponse(
+                R2PErrorCode.RC5000,
+                "UNKNOWN",
+                List.of()
+        );
+        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
     }
 
     private ErrorResponse createErrorResponse(String code, String message) {
@@ -132,29 +139,6 @@ public class GlobalExceptionHandler {
         return Mono.just(ResponseEntity.badRequest().body(errorResponse));
     }
 
-    @ExceptionHandler(R2PTransactionNotFoundException.class)
-    public Mono<ResponseEntity<ExtendedErrorResponse>> handleNotFound(R2PTransactionNotFoundException ex) {
-        ExtendedErrorResponse errorResponse = createErrorResponse(
-                R2PErrorCode.RC4001,
-                "UNKNOWN",
-                List.of()
-        );
-
-        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public Mono<ResponseEntity<ExtendedErrorResponse>> handleGeneric(Exception ex) {
-        log.error("Unexpected error", ex);
-        ExtendedErrorResponse errorResponse = createErrorResponse(
-                R2PErrorCode.RC5000,
-                "UNKNOWN",
-                List.of()
-        );
-
-        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
-    }
-
     private ExtendedErrorResponse createErrorResponse(R2PErrorCode errorCode, String requestMessageId, List<ErrorDetail> details) {
         return new ExtendedErrorResponse(
                 errorCode.getCode(),
@@ -203,5 +187,14 @@ public class GlobalExceptionHandler {
     private String extractRequestMessageId(WebExchangeBindException ex) {
         // Extract from request body if available
         return "UNKNOWN";
+    }
+
+    private ExchangeFilterFunction addVisaRequiredHeaders() {
+        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
+            ClientRequest newRequest = ClientRequest.from(clientRequest)
+                .header("X-Request-Timestamp", Instant.now().toString())
+                .build();
+            return Mono.just(newRequest);
+        });
     }
 }

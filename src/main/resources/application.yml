@@ -1,6 +1,8 @@
 spring:
   application:
-    name: r2p
+    name: r2p-service
+  config:
+    import: optional:vault://
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/r2p_db
     username: ${DB_USERNAME:r2p_user}
@@ -18,22 +20,147 @@ spring:
     default-property-inclusion: non_null
     serialization:
       write-dates-as-timestamps: false
+  sleuth:
+    sampler:
+      probability: 1.0
+    propagation:
+      type: B3
+    baggage:
+      correlation:
+        enabled: true
+        remote-fields: x-correlation-id,x-request-id,x-instance-id
+  cloud:
+    vault:
+      uri: ${VAULT_URI:https://vault.example.com:8200}
+      authentication: APPROLE
+      app-role:
+        role-id: ${VAULT_ROLE_ID}
+        secret-id: ${VAULT_SECRET_ID}
+        path: ${VAULT_APPROLE_PATH:auth/approle}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: myapp
+      ssl:
+        trust-store: classpath:vault-truststore.jks
+        trust-store-password: changeit
+    loadbalancer:
+      retry:
+        enabled: true
+    circuitbreaker:
+      resilience4j:
+        enabled: true
+        instances:
+          default:
+            slidingWindowSize: 100
+            minimumNumberOfCalls: 10
+            permittedNumberOfCallsInHalfOpenState: 5
+            automaticTransitionFromOpenToHalfOpenEnabled: true
+            waitDurationInOpenState: 5s
+            failureRateThreshold: 50
+            eventConsumerBufferSize: 10
+  redis:
+    lettuce:
+      pool:
+        max-size: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+  data:
+    redis:
+      cluster:
+        nodes: ${REDIS_CLUSTER_NODES:localhost:6379}
+        max-redirects: 3
+      timeout: 2000
+      lettuce:
+        cluster:
+          refresh:
+            adaptive: true
+            period: 15s
+
+---
+spring:
+  config:
+    activate:
+      on-profile: redis-password
+  data:
+    redis:
+      password: ${REDIS_PASSWORD}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: redis-username-password
+  data:
+    redis:
+      username: ${REDIS_USERNAME}
+      password: ${REDIS_PASSWORD}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,prometheus
+        include: health,info,prometheus,metrics
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      instance: ${random.uuid}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 logging:
-  level:
-    dev.tsvinc.r2p: DEBUG
-    org.springframework.data.r2dbc: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    dev.tsvinc.r2p: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    reactor.netty: INFO
+
+server:
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 20
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,text/css,application/javascript
+    min-response-size: 1024
+
+# Distributed tracing configuration
+opentelemetry:
+  service:
+    name: ${spring.application.name}
+  traces:
+    exporter: jaeger
+  metrics:
+    exporter: prometheus
+  logs:
+    exporter: logging
+
+# Circuit breaker configuration
+resilience4j:
+  ratelimiter:
+    instances:
+      default:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0s
+        registerHealthIndicator: true
+  retry:
+    instances:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
 
 r2p:
   api:

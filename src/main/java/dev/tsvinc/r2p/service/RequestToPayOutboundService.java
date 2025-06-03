@@ -235,7 +235,7 @@ public class RequestToPayOutboundService {
 
     private Mono<R2PTransaction> createRefundTransaction(R2PTransaction originalTransaction, RefundR2pRequest request) {
         return Mono.fromCallable(() -> {
-            RefundPaymentRequest refundRequest = request.paymentRequests().get(0);
+            RefundPaymentRequest refundRequest = request.paymentRequests().getFirst();
 
             // Validate the refund amount doesn't exceed original transaction amount (BigDecimal comparison)
             if (originalTransaction.getAcceptedAmount() != null
@@ -249,7 +249,7 @@ public class RequestToPayOutboundService {
             refundTransaction.setEndToEndId(refundRequest.endToEndId());
             refundTransaction.setRequestMessageId(request.requestMessageId());
             refundTransaction.setTransactionStatus(TransactionStatus.PDNG);
-            refundTransaction.setUseCase(UseCase.B2C.name());
+            refundTransaction.setUseCase(UseCase.P2P.name());
             refundTransaction.setRequestedAmount(refundRequest.requestedAmount()); // BigDecimal
             refundTransaction.setRequestedAmountCurrency(originalTransaction.getRequestedAmountCurrency());
             refundTransaction.setOriginalPaymentRequestId(originalTransaction.getPaymentRequestId());

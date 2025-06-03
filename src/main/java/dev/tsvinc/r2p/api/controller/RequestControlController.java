@@ -38,7 +38,6 @@ public class RequestControlController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<ViewBlockResponse>> viewBlocks(
-            @RequestHeader("Content-Type") String contentType,
             @RequestHeader("keyID") String keyId,
             @Valid @RequestBody ViewBlockRequest request) {
 
@@ -65,7 +64,6 @@ public class RequestControlController {
     public Mono<ResponseEntity<Void>> removeBlock(
             @Parameter(description = "Block reference ID", required = true)
             @PathVariable String blockReferenceId,
-            @RequestHeader("Content-Type") String contentType,
             @RequestHeader("keyID") String keyId) {
 
         log.info("Removing block: {}", blockReferenceId);

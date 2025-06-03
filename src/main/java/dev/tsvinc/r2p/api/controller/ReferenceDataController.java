@@ -35,7 +35,6 @@ public class ReferenceDataController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<ReferenceDataResponse>> getReferenceData(
-            @RequestHeader("Content-Type") String contentType,
             @RequestHeader("keyID") String keyId,
             @Valid @RequestBody ReferenceDataRequest request) {
 
