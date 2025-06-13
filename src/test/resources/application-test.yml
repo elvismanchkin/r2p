@@ -1,11 +1,16 @@
 spring:
-  cloud:
-    vault:
-      enabled: false
-      ssl:
-        trust-store: null
-        trust-store-password: null
-    bootstrap:
-      enabled: false
   config:
     import: ""
+  cloud:
+    vault:
+      uri: ${VAULT_URI:http://localhost:8200}
+      authentication: TOKEN
+      token: ${VAULT_TOKEN:root}
+      ssl:
+        enabled: false
+      kv:
+        enabled: true
+        backend: secret
+        default-context: myapp
+    bootstrap:
+      enabled: false
