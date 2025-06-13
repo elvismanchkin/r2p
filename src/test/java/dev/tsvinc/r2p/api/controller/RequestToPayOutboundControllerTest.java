@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
 @Import(RequestToPayOutboundController.class)
 @TestPropertySource(properties = {
         "management.prometheus.metrics.export.enabled=false",
-        "management.endpoints.web.exposure.include=health,info",
+        "management.endpoints.web.exposure.include=health info",
         "spring.main.web-application-type=reactive",
         "spring.autoconfigure.exclude=org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration,org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration,org.springframework.cloud.vault.config.VaultAutoConfiguration",
         "spring.main.allow-bean-definition-overriding=true",
@@ -522,8 +522,6 @@ class RequestToPayOutboundControllerTest {
     void initiateR2P_ValidationError() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
-        // Invalid: paymentRequests is empty
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
                 UseCase.P2P,
@@ -553,7 +551,6 @@ class RequestToPayOutboundControllerTest {
     void initiateR2P_NotFoundError() {
         // Given
         String keyId = "test-key-id";
-        String requestAffinity = "test-affinity";
         InitiateR2pRequest request = new InitiateR2pRequest(
                 Product.VD,
                 UseCase.P2P,
