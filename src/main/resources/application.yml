@@ -31,7 +31,6 @@ spring:
         remote-fields: x-correlation-id,x-request-id,x-instance-id
   cloud:
     vault:
-      uri: ${VAULT_URI:https://vault.example.com:8200}
       authentication: APPROLE
       app-role:
         role-id: ${VAULT_ROLE_ID}
@@ -41,9 +40,6 @@ spring:
         enabled: true
         backend: secret
         default-context: myapp
-      ssl:
-        trust-store: classpath:vault-truststore.jks
-        trust-store-password: changeit
     loadbalancer:
       retry:
         enabled: true

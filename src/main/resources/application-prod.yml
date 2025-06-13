@@ -1,0 +1,9 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  cloud:
+    vault:
+      ssl:
+        trust-store: classpath:vault-truststore.jks
+        trust-store-password: changeit 

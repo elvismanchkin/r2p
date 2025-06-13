@@ -6,16 +6,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.VaultResponse;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
@@ -23,24 +20,17 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@EnableAutoConfiguration(exclude = {
-    org.springframework.cloud.vault.config.VaultAutoConfiguration.class,
-    org.springframework.cloud.vault.config.VaultReactiveAutoConfiguration.class
-})
 @SpringBootTest
+@ActiveProfiles("test")
 @TestPropertySource(properties = {
-    "spring.config.import=",
-    "spring.cloud.vault.enabled=false",
-    "spring.cloud.vault.app-role.role-id=",
-    "spring.cloud.vault.app-role.secret-id=",
-    "spring.cloud.vault.ssl.trust-store=",
-    "spring.cloud.vault.ssl.trust-store-password="
+    "spring.cloud.vault.authentication=TOKEN",
+    "spring.cloud.vault.token=root",
+    "spring.cloud.vault.ssl.enabled=false",
+    "spring.cloud.vault.uri=http://localhost:${vault.port}"
 })
-@Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
 class VaultConfigurationTest {
 
-    @Container
     public static VaultContainer<?> vaultContainer = new VaultContainer<>(DockerImageName.parse("hashicorp/vault:1.19.4"))
             .withVaultToken("root")
             .withExposedPorts(8200);
@@ -50,6 +40,13 @@ class VaultConfigurationTest {
 
     static {
         vaultContainer.start();
+        System.setProperty("vault.port", String.valueOf(vaultContainer.getMappedPort(8200)));
+        try {
+            vaultContainer.execInContainer("vault", "secrets", "disable", "secret");
+            vaultContainer.execInContainer("vault", "secrets", "enable", "-path=secret", "-version=1", "kv");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @BeforeAll
@@ -70,27 +67,11 @@ class VaultConfigurationTest {
         vaultContainer.execInContainer("vault", "kv", "put", "secret/myapp/test", "key1=value1", "key2=value2");
     }
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        // Reference the container to ensure it is started before properties are set
-        vaultContainer.isRunning();
-        registry.add("spring.cloud.vault.uri", () -> "http://" + vaultContainer.getHost() + ":" + vaultContainer.getMappedPort(8200));
-        registry.add("spring.cloud.vault.authentication", () -> "APPROLE");
-        registry.add("spring.cloud.vault.app-role.role-id", () -> roleId);
-        registry.add("spring.cloud.vault.app-role.secret-id", () -> secretId);
-        registry.add("spring.cloud.vault.app-role.path", () -> "auth/approle");
-        registry.add("spring.cloud.vault.kv.enabled", () -> true);
-        registry.add("spring.cloud.vault.kv.backend", () -> "secret");
-        registry.add("spring.cloud.vault.kv.default-context", () -> "myapp");
-        registry.add("spring.cloud.vault.ssl.enabled", () -> false);
-    }
-
     @Autowired
     private VaultTemplate vaultTemplate;
 
     @BeforeEach
     void setUp() {
-        // Write some test data to Vault
         vaultTemplate.write("secret/myapp/test", Map.of(
             "key1", "value1",
             "key2", "value2"
@@ -109,5 +90,10 @@ class VaultConfigurationTest {
         assertThat(response.getData()).isNotNull();
         assertThat(response.getData().get("key1")).isEqualTo("value1");
         assertThat(response.getData().get("key2")).isEqualTo("value2");
+    }
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.cloud.vault.uri", () -> "http://" + vaultContainer.getHost() + ":" + vaultContainer.getMappedPort(8200));
     }
 } 

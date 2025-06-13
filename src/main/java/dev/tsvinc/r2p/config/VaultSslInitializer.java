@@ -8,6 +8,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.VaultResponse;
+import org.springframework.context.annotation.Profile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +16,7 @@ import java.util.Base64;
 import java.util.Map;
 
 @Component
+@Profile("prod")
 @ConditionalOnProperty(name = "spring.cloud.vault.enabled", havingValue = "true", matchIfMissing = true)
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class VaultSslInitializer implements ApplicationRunner {

@@ -18,12 +18,14 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.context.annotation.Primary;
 import org.springframework.vault.client.RestTemplateFactory;
 import org.springframework.vault.config.AbstractVaultConfiguration.ClientFactoryWrapper;
+import org.springframework.context.annotation.Profile;
 
 import java.net.URI;
 import java.util.Objects;
 import java.io.File;
 
 @Configuration
+@Profile("prod")
 @ConditionalOnProperty(name = "spring.cloud.vault.enabled", havingValue = "true", matchIfMissing = true)
 @EnableVaultRepositories
 public class VaultConfiguration extends AbstractVaultConfiguration {
