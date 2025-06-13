@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: r2p-postgres
+    environment:
+      POSTGRES_DB: r2p_db
+      POSTGRES_USER: r2p_user
+      POSTGRES_PASSWORD: r2p_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./src/main/resources/db/migration:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U r2p_user -d r2p_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: r2p-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  app:
+    build: .
+    container_name: r2p-app
+    environment:
+      SPRING_R2DBC_URL: r2dbc:postgresql://db:5432/r2p_db
+      SPRING_R2DBC_USERNAME: r2p_user
+      SPRING_R2DBC_PASSWORD: r2p_password
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/r2p_db
+      SPRING_DATASOURCE_USERNAME: r2p_user
+      SPRING_DATASOURCE_PASSWORD: r2p_password
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_FLYWAY_URL: jdbc:postgresql://db:5432/r2p_db
+      SPRING_FLYWAY_USER: r2p_user
+      SPRING_FLYWAY_PASSWORD: r2p_password
+      VAULT_HOST: vault
+      VAULT_PORT: 8200
+      SPRING_CLOUD_VAULT_URI: http://vault:8200
+      SPRING_CLOUD_VAULT_TOKEN: root
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  vault:
+    image: hashicorp/vault:1.15.2
+    container_name: vault
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+      - VAULT_API_ADDR=http://127.0.0.1:8200
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    command: server -dev
+    volumes:
+      - vault_data:/vault/data
+    networks:
+      - r2p-network
+
+volumes:
+  db_data:
+  redis_data:
+  vault_data:
+    driver: local
+
+networks:
+  r2p-network:
+    driver: bridge 
