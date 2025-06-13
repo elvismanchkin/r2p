@@ -13,9 +13,15 @@ import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.repository.configuration.EnableVaultRepositories;
 import org.springframework.vault.support.SslConfiguration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.context.annotation.Primary;
+import org.springframework.vault.client.RestTemplateFactory;
+import org.springframework.vault.config.AbstractVaultConfiguration.ClientFactoryWrapper;
 
 import java.net.URI;
 import java.util.Objects;
+import java.io.File;
 
 @Configuration
 @ConditionalOnProperty(name = "spring.cloud.vault.enabled", havingValue = "true", matchIfMissing = true)
@@ -52,9 +58,29 @@ public class VaultConfiguration extends AbstractVaultConfiguration {
 
     @Override
     public SslConfiguration sslConfiguration() {
-        return SslConfiguration.forTrustStore(
-                new FileSystemResource(environment.getProperty("spring.cloud.vault.ssl.trust-store")),
-                environment.getProperty("spring.cloud.vault.ssl.trust-store-password").toCharArray()
-        );
+        String trustStorePath = environment.getProperty("spring.cloud.vault.ssl.trust-store");
+        String trustStorePassword = environment.getProperty("spring.cloud.vault.ssl.trust-store-password");
+        if (trustStorePath == null || trustStorePath.isBlank()) {
+            return SslConfiguration.unconfigured();
+        }
+        try {
+            Resource resource = new DefaultResourceLoader().getResource(trustStorePath);
+            if (!resource.exists()) {
+                return SslConfiguration.unconfigured();
+            }
+            return SslConfiguration.forTrustStore(
+                    resource,
+                    trustStorePassword != null ? trustStorePassword.toCharArray() : new char[0]
+            );
+        } catch (Exception e) {
+            return SslConfiguration.unconfigured();
+        }
+    }
+
+    @Bean
+    @Primary
+    @Override
+    public RestTemplateFactory restTemplateFactory(ClientFactoryWrapper clientFactoryWrapper) {
+        return super.restTemplateFactory(clientFactoryWrapper);
     }
 }
